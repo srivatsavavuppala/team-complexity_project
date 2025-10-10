@@ -10,7 +10,40 @@ const crypto = require('crypto');
 const router = express.Router();
 const db = database.getDb();
 
-// Configure multer for file uploads
+const parseExperienceYears = (resumeText) => {
+  const regex = /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)?\.?\s?\d{4}\b|\d{2}[\/\-]\d{4}|\b\d{4}\b)\s*[-–]\s*(Present|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)?\.?\s?\d{4}\b|\d{2}[\/\-]\d{4}|\b\d{4}\b)/gi;
+  let totalMonths = 0;
+  const now = new Date();
+
+  let match;
+  while ((match = regex.exec(resumeText)) !== null) {
+    let start = match[1];
+    let end = match[2];
+
+    const parseDate = (str) => {
+      if (!str || str.toLowerCase() === 'present') return now;
+      let d = new Date(str);
+      if (!isNaN(d)) return d;
+      const mmYYYY = str.match(/(\d{1,2})[\/\-](\d{4})/);
+      if (mmYYYY) return new Date(parseInt(mmYYYY[2]), parseInt(mmYYYY[1]) - 1, 1);
+      const yyyy = str.match(/(\d{4})/);
+      if (yyyy) return new Date(parseInt(yyyy[1]), 0, 1);
+      return null;
+    };
+
+    const startDate = parseDate(start);
+    const endDate = parseDate(end);
+
+    if (startDate && endDate) {
+      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+      totalMonths += months > 0 ? months : 0;
+    }
+  }
+
+  const years = Math.floor(totalMonths / 12);
+  return years > 0 ? `${years}+` : '0+';
+};
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -102,8 +135,9 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
 
     // Analyze resume with AI
     const analysis = await groqService.analyzeResume(parsedResume.text);
-
-    // Create candidate record
+    // ✅ Calculate total experience from resume text (any format)
+    const calculatedExperience = parseExperienceYears(parsedResume.text);
+    analysis.experienceYears = calculatedExperience;
     const candidateId = uuidv4();
     const candidateData = {
       id: candidateId,

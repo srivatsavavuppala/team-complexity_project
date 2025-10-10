@@ -17,7 +17,7 @@ const jobSchema = Joi.object({
   experienceRequired: Joi.number().integer().min(0).optional()
 });
 
-// Create job position
+// Create job position with auto-match
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { error, value } = jobSchema.validate(req.body);
@@ -32,10 +32,42 @@ router.post('/', authenticateToken, async (req, res) => {
       `INSERT INTO job_positions (id, title, description, requirements, skills_required, experience_required, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [jobId, title, description, requirements, skillsRequired, experienceRequired, req.user.userId],
-      function(err) {
+      async function(err) {
         if (err) {
           console.error('Database error:', err);
           return res.status(500).json({ error: 'Failed to create job position' });
+        }
+        try {
+          const candidates = await new Promise((resolve, reject) => {
+            db.all('SELECT * FROM candidates', [], (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows);
+            });
+          });
+
+          for (const candidate of candidates) {
+            try {
+              const matchResult = await groqService.matchCandidateToJob(
+                {
+                  skills: candidate.skills?.split(',') || [],
+                  experienceYears: candidate.experience_years || 0,
+                  resumeText: candidate.resume_text
+                },
+                description
+              );
+
+              const matchId = uuidv4();
+              db.run(
+                `INSERT INTO candidate_matches (id, candidate_id, job_position_id, match_score, ai_reasoning, created_at)
+                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                [matchId, candidate.id, jobId, matchResult.matchScore, JSON.stringify(matchResult)]
+              );
+            } catch (err) {
+              console.error(`Failed to match candidate ${candidate.id}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch candidates for matching:', err);
         }
 
         res.status(201).json({
@@ -81,13 +113,11 @@ router.get('/', authenticateToken, (req, res) => {
   query += ' ORDER BY j.created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
-  // Get total count
   db.get(countQuery, search ? [`%${search}%`, `%${search}%`, `%${search}%`] : [], (err, countResult) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // Get job positions
     db.all(query, params, (err, jobs) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
@@ -187,7 +217,6 @@ router.post('/:id/generate-questions', authenticateToken, async (req, res) => {
     const jobId = req.params.id;
     const { candidateSkills = [], difficulty = 'medium' } = req.body;
 
-    // Get job details
     const job = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM job_positions WHERE id = ?', [jobId], (err, row) => {
         if (err) reject(err);
@@ -199,7 +228,6 @@ router.post('/:id/generate-questions', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Job position not found' });
     }
 
-    // Generate interview questions using AI
     const questions = await groqService.generateInterviewQuestions(
       job.title,
       job.description,
@@ -240,19 +268,16 @@ router.get('/:id/matches', authenticateToken, (req, res) => {
     WHERE cm.job_position_id = ?
   `;
 
-  // Get total count
   db.get(countQuery, [jobId], (err, countResult) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // Get matches
     db.all(query, [jobId, limit, offset], (err, matches) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
 
-      // Parse AI reasoning
       const processedMatches = matches.map(match => ({
         ...match,
         ai_reasoning: match.ai_reasoning ? JSON.parse(match.ai_reasoning) : null
