@@ -9,6 +9,16 @@ const fileParser = require('../utils/fileParser');
 const crypto = require('crypto');
 const router = express.Router();
 const db = database.getDb();
+const nodemailer = require('nodemailer');
+
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER, // your Gmail
+    pass: process.env.GMAIL_PASS  // app password
+  }
+});
 
 const parseExperienceYears = (resumeText) => {
   const regex = /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)?\.?\s?\d{4}\b|\d{2}[\/\-]\d{4}|\b\d{4}\b)\s*[-–]\s*(Present|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)?\.?\s?\d{4}\b|\d{2}[\/\-]\d{4}|\b\d{4}\b)/gi;
@@ -202,6 +212,44 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
   }
 });
 
+router.post('/:id/send-assessment', authenticateToken, async (req, res) => {
+  try {
+    const candidateId = req.params.id;
+    const { jobId, questions } = req.body;
+
+    const candidate = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, row) => err ? reject(err) : resolve(row));
+    });
+
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+    const assessmentLink = `https://your-frontend.com/assessment/${candidate.id}/${jobId}`;
+
+    await transporter.sendMail({
+      from: `"TeamComplexity Assesment Mail" <${process.env.GMAIL_USER}>`,
+      to: candidate.email,
+      subject: `Assessment for Job`,
+      html: `
+        <p>Hello ${candidate.name},</p>
+        <p>Please complete your assessment by clicking below:</p>
+        <a href="${assessmentLink}" target="_blank">Start Assessment</a>
+        <p>Questions included in the assessment:</p>
+        <ul>
+          ${questions.technical?.map(q => `<li>${q.question}</li>`).join('') || ''}
+          ${questions.behavioral?.map(q => `<li>${q.question}</li>`).join('') || ''}
+          ${questions.situational?.map(q => `<li>${q.question}</li>`).join('') || ''}
+          ${questions.cultural?.map(q => `<li>${q.question}</li>`).join('') || ''}
+        </ul>
+        <p>Best regards,<br/>Your Company</p>
+      `
+    });
+
+    res.json({ message: `Assessment link sent to ${candidate.email}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send assessment' });
+  }
+});
 
 // Get all candidates
 router.get('/', authenticateToken, (req, res) => {

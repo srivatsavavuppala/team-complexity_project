@@ -32,7 +32,7 @@ async function createAssessmentAndSendEmail({ candidateId, jobId, questions }) {
   if (!candidate) throw new Error('Candidate not found');
 
   const mailOptions = {
-    from: '"Your Company" <no-reply@yourcompany.com>',
+    from: '"TeamComplexity Assesment Mail" <no-reply@yourcompany.com>',
     to: candidate.email,
     subject: `Assessment for ${jobId}`,
     text: `Hi ${candidate.name},\n\nPlease complete this assessment: ${link}\n\nBest,\nRecruiter`,

@@ -11,10 +11,19 @@
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "test": "cd server && npm test && cd ../client && npm test"
   },
-  "keywords": ["AI", "recruitment", "interview", "groq", "enterprise"],
+  "keywords": [
+    "AI",
+    "recruitment",
+    "interview",
+    "groq",
+    "enterprise"
+  ],
   "author": "AI Recruitment Team",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.9"
   }
 }
