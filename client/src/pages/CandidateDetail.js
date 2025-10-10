@@ -136,6 +136,12 @@ const CandidateDetail = () => {
     () => axios.get(`/api/candidates/${id}`).then(res => res.data.candidate)
   );
 
+  const { data: autoMatches, isLoading: matchesLoading } = useQuery(
+    ['candidate-matches', id],
+    () => axios.get(`/api/candidates/${id}/matches`).then(res => res.data.matches),
+    { enabled: !!id }
+  );
+
   if (isLoading) {
     return <LoadingSpinner message="Loading candidate details..." />;
   }
@@ -197,9 +203,21 @@ const CandidateDetail = () => {
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
                   {candidate?.name}
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                   {candidate?.experience_years} years of experience
                 </Typography>
+                {candidate?.current_job_title && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {candidate.current_job_title}
+                    {candidate?.current_company && ` at ${candidate.current_company}`}
+                  </Typography>
+                )}
+                {candidate?.education_level && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {candidate.education_level}
+                    {candidate?.education_field && ` in ${candidate.education_field}`}
+                  </Typography>
+                )}
 
                 <Divider sx={{ my: 2 }} />
 
@@ -372,13 +390,123 @@ const CandidateDetail = () => {
           </motion.div>
         </Grid>
 
+        {/* Auto-Matched Jobs */}
+        <Grid item xs={12}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  🤖 AI Auto-Matched Jobs
+                </Typography>
+                
+                {matchesLoading ? (
+                  <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <LinearProgress sx={{ mb: 2 }} />
+                    <Typography>Loading auto-matches...</Typography>
+                  </Box>
+                ) : autoMatches?.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <WorkIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="body1" color="text.secondary">
+                      No job matches found yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Auto-matching happens when resumes are uploaded
+                    </Typography>
+                  </Box>
+                ) : (
+                  <List>
+                    {autoMatches?.map((match, index) => (
+                      <ListItem
+                        key={index}
+                        divider
+                        sx={{
+                          cursor: 'pointer',
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'action.hover' },
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          p: 2,
+                        }}
+                        onClick={() => navigate(`/jobs/${match.job_position_id}`)}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
+                          <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
+                            <WorkIcon />
+                          </Avatar>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                              {match.title}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <Chip
+                                label={`${match.match_score}% match`}
+                                size="small"
+                                color={match.match_score >= 80 ? 'success' : match.match_score >= 60 ? 'warning' : 'default'}
+                              />
+                              {match.ai_reasoning?.recommendation && (
+                                <Chip
+                                  label={match.ai_reasoning.recommendation}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ textTransform: 'capitalize' }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                        
+                        {match.ai_reasoning && (
+                          <Box sx={{ width: '100%', mt: 1, pl: 7 }}>
+                            {match.ai_reasoning.skillsMatched?.length > 0 && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="caption" color="success.main" sx={{ fontWeight: 600 }}>
+                                  Matched Skills: 
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{ ml: 1 }}>
+                                  {match.ai_reasoning.skillsMatched.join(', ')}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {match.ai_reasoning.skillsMissing?.length > 0 && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="caption" color="warning.main" sx={{ fontWeight: 600 }}>
+                                  Skills to Develop: 
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{ ml: 1 }}>
+                                  {match.ai_reasoning.skillsMissing.join(', ')}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {match.ai_reasoning.reasoning && (
+                              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                {match.ai_reasoning.reasoning}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Grid>
+
         {/* Resume Text (if available) */}
         {candidate?.resume_text && (
           <Grid item xs={12}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
             >
               <Card>
                 <CardContent>
