@@ -38,7 +38,13 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      minHeight: '100vh',
+      width: '100vw',
+      overflow: 'hidden',
+      bgcolor: 'background.default'
+    }}>
       <Routes>
         {/* Public Routes */}
         <Route
