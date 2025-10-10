@@ -17,6 +17,9 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
+  Badge,
+  Chip,
+  Stack,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -27,17 +30,20 @@ import {
   AccountCircle,
   Logout,
   Settings,
+  Notifications,
+  Search,
+  Psychology,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const drawerWidth = 280;
+const drawerWidth = 300;
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'Candidates', icon: <PeopleIcon />, path: '/candidates' },
-  { text: 'Job Positions', icon: <WorkIcon />, path: '/jobs' },
-  { text: 'Interviews', icon: <InterviewIcon />, path: '/interviews' },
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', badge: null },
+  { text: 'Candidates', icon: <PeopleIcon />, path: '/candidates', badge: null },
+  { text: 'Job Positions', icon: <WorkIcon />, path: '/jobs', badge: null },
+  { text: 'Interviews', icon: <InterviewIcon />, path: '/interviews', badge: '3' },
 ];
 
 const Layout = ({ children }) => {
@@ -68,57 +74,133 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <Box>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Logo Section */}
+      <Box sx={{ p: 3, pb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Avatar
             sx={{
               bgcolor: 'primary.main',
-              width: 40,
-              height: 40,
-              fontSize: '1.2rem',
+              width: 48,
+              height: 48,
+              fontSize: '1.4rem',
+              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
             }}
           >
-            AI
+            <Psychology />
           </Avatar>
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            AI Recruiter
-          </Typography>
+          <Box>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              AI Recruiter
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Enterprise Platform
+            </Typography>
+          </Box>
         </Box>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) {
-                  setMobileOpen(false);
-                }
-              }}
-              sx={{
-                mx: 1,
-                borderRadius: 2,
-                '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  },
-                  '& .MuiListItemIcon-root': {
+        <Chip 
+          label="Pro Plan" 
+          size="small" 
+          color="primary" 
+          variant="outlined"
+          sx={{ fontSize: '0.75rem' }}
+        />
+      </Box>
+
+      <Divider sx={{ mx: 2 }} />
+
+      {/* Navigation Menu */}
+      <Box sx={{ flex: 1, px: 2, py: 1 }}>
+        <Typography variant="overline" sx={{ px: 2, py: 1, color: 'text.secondary', fontSize: '0.7rem', fontWeight: 600 }}>
+          MAIN MENU
+        </Typography>
+        <List sx={{ px: 0 }}>
+          {menuItems.map((item) => (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  if (isMobile) {
+                    setMobileOpen(false);
+                  }
+                }}
+                sx={{
+                  borderRadius: 3,
+                  py: 1.5,
+                  px: 2,
+                  transition: 'all 0.2s ease-in-out',
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
                     color: 'white',
+                    transform: 'translateX(4px)',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    },
+                    '& .MuiListItemIcon-root': {
+                      color: 'white',
+                    },
+                    '& .MuiListItemText-primary': {
+                      fontWeight: 600,
+                    },
                   },
-                },
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+                  '&:hover': {
+                    bgcolor: 'grey.50',
+                    transform: 'translateX(2px)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ 
+                    fontWeight: location.pathname === item.path ? 600 : 500,
+                    fontSize: '0.95rem'
+                  }} 
+                />
+                {item.badge && (
+                  <Chip 
+                    label={item.badge} 
+                    size="small" 
+                    color="error" 
+                    sx={{ 
+                      height: 20, 
+                      fontSize: '0.7rem',
+                      '& .MuiChip-label': { px: 1 }
+                    }} 
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      {/* User Info Section */}
+      <Box sx={{ p: 2, mt: 'auto' }}>
+        <Box sx={{ 
+          bgcolor: 'grey.50', 
+          borderRadius: 3, 
+          p: 2,
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: '0.9rem' }}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
+                {user?.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {user?.email}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 
@@ -129,14 +211,16 @@ const Layout = ({ children }) => {
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          bgcolor: 'background.paper',
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
           color: 'text.primary',
           borderBottom: '1px solid',
           borderColor: 'divider',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         }}
         elevation={0}
       >
-        <Toolbar>
+        <Toolbar sx={{ py: 1 }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -147,25 +231,71 @@ const Layout = ({ children }) => {
             <MenuIcon />
           </IconButton>
           
+          {/* Search Bar */}
+          <Box sx={{ 
+            display: { xs: 'none', sm: 'flex' }, 
+            alignItems: 'center', 
+            bgcolor: 'grey.50', 
+            borderRadius: 3, 
+            px: 2, 
+            py: 1, 
+            minWidth: 300,
+            border: '1px solid',
+            borderColor: 'grey.200'
+          }}>
+            <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              Search candidates, jobs, interviews...
+            </Typography>
+          </Box>
+          
           <Box sx={{ flexGrow: 1 }} />
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Welcome, {user?.name}
-            </Typography>
+          {/* Header Actions */}
+          <Stack direction="row" spacing={1} alignItems="center">
             <IconButton
               size="large"
-              aria-label="account of current user"
-              aria-controls="profile-menu"
-              aria-haspopup="true"
-              onClick={handleProfileMenuOpen}
+              aria-label="notifications"
               color="inherit"
+              sx={{ 
+                bgcolor: 'grey.50', 
+                border: '1px solid',
+                borderColor: 'grey.200',
+                '&:hover': { bgcolor: 'grey.100' }
+              }}
             >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+              <Badge badgeContent={4} color="error">
+                <Notifications />
+              </Badge>
+            </IconButton>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1.5, 
+              bgcolor: 'grey.50', 
+              borderRadius: 3, 
+              px: 2, 
+              py: 1,
+              border: '1px solid',
+              borderColor: 'grey.200',
+              cursor: 'pointer'
+            }}
+            onClick={handleProfileMenuOpen}
+            >
+              <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                  {user?.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Administrator
+                </Typography>
+              </Box>
+              <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
                 {user?.name?.charAt(0).toUpperCase()}
               </Avatar>
-            </IconButton>
-          </Box>
+            </Box>
+          </Stack>
         </Toolbar>
       </AppBar>
 
@@ -224,6 +354,8 @@ const Layout = ({ children }) => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
+              borderRight: 'none',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             },
           }}
         >
@@ -238,6 +370,7 @@ const Layout = ({ children }) => {
               width: drawerWidth,
               borderRight: '1px solid',
               borderColor: 'divider',
+              backgroundColor: '#ffffff',
             },
           }}
           open
@@ -250,14 +383,17 @@ const Layout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px',
+          mt: '80px',
           bgcolor: 'background.default',
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: 'calc(100vh - 80px)',
+          overflow: 'auto',
+          position: 'relative',
         }}
       >
-        {children}
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: '100%' }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
