@@ -10,6 +10,7 @@ class FileParser {
       
       if (mimetype === 'application/pdf') {
         const pdfData = await pdfParse(buffer);
+        console.log('PDF Text:', pdfData); // Debugging line to check extracted text
         text = pdfData.text;
       } else if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         const result = await mammoth.extractRawText({ buffer });

@@ -74,6 +74,10 @@ class Database {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates (id),
         FOREIGN KEY (job_position_id) REFERENCES job_positions (id)
+      )`,
+      `CrEATE TABLE IF NOT EXISTS assessment_response (
+        id TEXT PRIMARY KEY,
+        response TEXT
       )`
     ];
 

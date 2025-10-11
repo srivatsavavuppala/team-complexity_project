@@ -40,7 +40,7 @@ class GroqService {
 
       const completion = await this.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama3-8b-8192',
+        model: 'openai/gpt-oss-20b',
         temperature: 0.3,
         max_tokens: 2000
       });
@@ -88,7 +88,7 @@ class GroqService {
 
       const completion = await this.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama3-8b-8192',
+        model: 'openai/gpt-oss-20b',
         temperature: 0.7,
         max_tokens: 3000
       });
@@ -129,7 +129,7 @@ class GroqService {
 
       const completion = await this.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama3-8b-8192',
+        model: 'openai/gpt-oss-20b',
         temperature: 0.3,
         max_tokens: 1500
       });
@@ -180,7 +180,7 @@ class GroqService {
 
       const completion = await this.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama3-8b-8192',
+        model: 'openai/gpt-oss-20b',
         temperature: 0.3,
         max_tokens: 2000
       });

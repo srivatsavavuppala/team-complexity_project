@@ -44,11 +44,11 @@ const CandidateCard = ({ candidate, onView }) => (
   >
     <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => onView(candidate.id)}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
             <PersonIcon />
           </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1, minWidth: 200, overflow: 'hidden' }}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {candidate.name}
             </Typography>
@@ -56,13 +56,13 @@ const CandidateCard = ({ candidate, onView }) => (
               {candidate.experience_years} years experience
             </Typography>
           </Box>
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(candidate.id); }}>
+          {/* <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(candidate.id); }}>
             <ViewIcon />
-          </IconButton>
+          </IconButton> */}
         </Box>
 
         {candidate.email && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <EmailIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
             <Typography variant="body2" color="text.secondary">
               {candidate.email}
@@ -79,33 +79,14 @@ const CandidateCard = ({ candidate, onView }) => (
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-          {candidate.skills?.slice(0, 3).map((skill, index) => (
-            <Chip
-              key={index}
-              label={skill}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.7rem' }}
-            />
-          ))}
-          {candidate.skills?.length > 3 && (
-            <Chip
-              label={`+${candidate.skills.length - 3} more`}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.7rem' }}
-            />
-          )}
-        </Box>
 
-        {candidate.resume_analysis?.overallScore && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              AI Score: {candidate.resume_analysis.overallScore}/100
-            </Typography>
-          </Box>
-        )}
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            AI Score: {candidate.resume_analysis?.overallScore != null
+                ? `${candidate.resume_analysis.overallScore}/100`
+                : 'N/A'}
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   </motion.div>

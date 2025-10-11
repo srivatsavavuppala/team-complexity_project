@@ -40,6 +40,10 @@ const menuItems = [
   { text: 'Interviews', icon: <InterviewIcon />, path: '/interviews' },
 ];
 
+const hideSidebarRoutes = ['/Assess']; 
+// const shouldHideSidebar = hideSidebarRoutes.includes(window.location.pathname);
+const shouldHideSidebar = window.location.pathname.startsWith('/Assess');
+
 const Layout = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -124,7 +128,8 @@ const Layout = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar
+      {!shouldHideSidebar &&
+        <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
@@ -168,7 +173,7 @@ const Layout = ({ children }) => {
           </Box>
         </Toolbar>
       </AppBar>
-
+  }     
       <Menu
         id="profile-menu"
         anchorEl={anchorEl}
@@ -207,7 +212,8 @@ const Layout = ({ children }) => {
           Logout
         </MenuItem>
       </Menu>
-
+      
+      {!shouldHideSidebar &&
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
@@ -245,6 +251,7 @@ const Layout = ({ children }) => {
           {drawer}
         </Drawer>
       </Box>
+      }
 
       <Box
         component="main"

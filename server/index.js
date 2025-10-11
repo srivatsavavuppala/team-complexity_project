@@ -11,6 +11,7 @@ const candidateRoutes = require('./routes/candidates');
 const jobRoutes = require('./routes/jobs');
 const interviewRoutes = require('./routes/interviews');
 const dashboardRoutes = require('./routes/dashboard');
+const assessRoutes = require('./routes/assess');
 
 // Import database
 const database = require('./config/database');
@@ -47,6 +48,7 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/submit', assessRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
