@@ -234,9 +234,21 @@ router.post('/:id/send-assessment', authenticateToken, async (req, res) => {
     });
 
     if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    const assessmentId = uuidv4();
+    const assessmentLink = `https://your-frontend.com/assessment/${candidate.id}`;
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO assessments (id, candidate_id, job_id, questions, status, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
+        [assessmentId, candidateId, jobId, JSON.stringify(questions), 'pending', new Date(Date.now() + 7*24*60*60*1000).toISOString()],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
 
-    const assessmentLink = `https://your-frontend.com/assessment/${candidate.id}/${jobId}`;
-
+    //SEND EMAIL
     await transporter.sendMail({
       from: `"TeamComplexity Assesment Mail" <${process.env.GMAIL_USER}>`,
       to: candidate.email,

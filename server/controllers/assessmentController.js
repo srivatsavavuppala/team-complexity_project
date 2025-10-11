@@ -1,24 +1,35 @@
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
-const db = require('../db');
+const db = require('../config/database');
 
 async function createAssessmentAndSendEmail({ candidateId, jobId, questions }) {
   const assessmentId = uuidv4();
+
   const assessment = {
     id: assessmentId,
-    candidateId,
-    jobId,
-    questions,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 7*24*60*60*1000), // 7 days
-    status: 'pending'
+    candidate_id: candidateId,
+    job_id: jobId,
+    questions: JSON.stringify(questions),
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 7*24*60*60*1000).toISOString()
   };
 
-  await db.assessments.insert(assessment);
+  try {
+    const result = await db.assessments.insert(assessment);
+    console.log('Assessment inserted:', result);
+  } catch (err) {
+    console.error('Failed to insert assessment:', err);
+    throw err;
+  }
+
+  const candidate = await db.candidates.findById(candidateId);
+  if (!candidate) throw new Error('Candidate not found');
 
   const link = `${process.env.APP_URL || 'http://localhost:3000'}/assessments/${assessmentId}/take`;
+
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'https://api.smtp2go.com/v3/',
+    host: process.env.SMTP_HOST || 'smtp.yourprovider.com',
     port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
     secure: false,
     auth: {
@@ -27,12 +38,8 @@ async function createAssessmentAndSendEmail({ candidateId, jobId, questions }) {
     }
   });
 
-  // fetch candidate email from DB (adjust)
-  const candidate = await db.candidates.findById(candidateId);
-  if (!candidate) throw new Error('Candidate not found');
-
   const mailOptions = {
-    from: '"TeamComplexity Assesment Mail" <no-reply@yourcompany.com>',
+    from: '"TeamComplexity Assessment Mail" <no-reply@yourcompany.com>',
     to: candidate.email,
     subject: `Assessment for ${jobId}`,
     text: `Hi ${candidate.name},\n\nPlease complete this assessment: ${link}\n\nBest,\nRecruiter`,
