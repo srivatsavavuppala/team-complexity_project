@@ -284,6 +284,428 @@ router.post('/:id/send-assessment', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) => {
+  try {
+    const { candidateId, jobId } = req.params;
+
+    const assessment = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
+         FROM assessments a
+         JOIN candidates c ON a.candidate_id = c.id
+         JOIN job_positions j ON a.job_id = j.id
+         WHERE a.candidate_id = ? AND a.job_id = ?`,
+        [candidateId, jobId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    if (!assessment.analysis) {
+      return res.status(404).json({ error: 'No analysis found for this assessment' });
+    }
+
+    res.json({
+      success: true,
+      analysis: JSON.parse(assessment.analysis),
+      candidateName: assessment.candidate_name,
+      jobTitle: assessment.job_title
+    });
+
+  } catch (error) {
+    console.error('Get analysis error:', error);
+    res.status(500).json({ error: 'Failed to retrieve analysis' });
+  }
+});
+
+router.post('/:candidateId/send-assessment', authenticateToken, async (req, res) => {
+  try {
+    const { candidateId } = req.params;
+    const { jobId, questions } = req.body;
+
+    // Validate input
+    if (!jobId || !questions) {
+      return res.status(400).json({ error: 'Job ID and questions are required' });
+    }
+
+    // Check if candidate exists
+    const candidate = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!candidate) {
+      return res.status(404).json({ error: 'Candidate not found' });
+    }
+
+    // Check if job exists
+    const job = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM job_positions WHERE id = ?', [jobId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job position not found' });
+    }
+
+    // Check if assessment already exists for this candidate-job combination
+    const existingAssessment = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM assessments WHERE candidate_id = ? AND job_id = ?',
+        [candidateId, jobId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+    if (existingAssessment) {
+      // Update existing assessment (resend case)
+      await new Promise((resolve, reject) => {
+        db.run(
+          `UPDATE assessments 
+           SET questions = ?, status = 'pending', expires_at = ?, created_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [JSON.stringify(questions), expiresAt.toISOString(), existingAssessment.id],
+          function(err) {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+
+      console.log(`Assessment updated and resent for candidate ${candidateId}`);
+    } else {
+      // Create new assessment
+      const assessmentId = uuidv4();
+      
+      await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO assessments (id, candidate_id, job_id, questions, status, expires_at)
+           VALUES (?, ?, ?, ?, 'pending', ?)`,
+          [assessmentId, candidateId, jobId, JSON.stringify(questions), expiresAt.toISOString()],
+          function(err) {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+
+      console.log(`New assessment created with ID: ${assessmentId}`);
+    }
+
+    // TODO: Send email to candidate with assessment link
+    // Example: await emailService.sendAssessmentEmail(candidate.email, assessmentId, job.title);
+    
+    // For now, just log the assessment link
+    const assessmentLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/assessment/${existingAssessment?.id || uuidv4()}`;
+    console.log(`Assessment link for ${candidate.name}: ${assessmentLink}`);
+
+    res.json({ 
+      success: true, 
+      message: `Assessment ${existingAssessment ? 'resent' : 'sent'} successfully to ${candidate.name}`,
+      assessmentLink // Remove this in production, only send via email
+    });
+
+  } catch (error) {
+    console.error('Send assessment error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send assessment' });
+  }
+});
+
+
+router.get('/assessment/:assessmentId', async (req, res) => {
+  try {
+    const { assessmentId } = req.params;
+
+    const assessment = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title, j.description as job_description
+         FROM assessments a
+         JOIN candidates c ON a.candidate_id = c.id
+         JOIN job_positions j ON a.job_id = j.id
+         WHERE a.id = ?`,
+        [assessmentId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    // Check if assessment has expired
+    if (new Date(assessment.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Assessment has expired' });
+    }
+
+    // Check if already completed
+    if (assessment.status === 'completed') {
+      return res.status(400).json({ error: 'Assessment already completed' });
+    }
+
+    res.json({
+      assessment: {
+        id: assessment.id,
+        candidateName: assessment.candidate_name,
+        jobTitle: assessment.job_title,
+        jobDescription: assessment.job_description,
+        questions: JSON.parse(assessment.questions),
+        expiresAt: assessment.expires_at,
+        status: assessment.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Get assessment error:', error);
+    res.status(500).json({ error: 'Failed to retrieve assessment' });
+  }
+});
+
+
+router.post('/assessment/:assessmentId/submit', async (req, res) => {
+  try {
+    const { assessmentId } = req.params;
+    const { responses } = req.body;
+
+    if (!responses) {
+      return res.status(400).json({ error: 'Responses are required' });
+    }
+
+    // Get assessment
+    const assessment = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM assessments WHERE id = ?', [assessmentId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    if (assessment.status === 'completed') {
+      return res.status(400).json({ error: 'Assessment already completed' });
+    }
+
+    if (new Date(assessment.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Assessment has expired' });
+    }
+
+    // Update assessment status to completed and store responses
+    await new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE assessments 
+         SET status = 'completed'
+         WHERE id = ?`,
+        [assessmentId],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    // Store responses in assessment_response table
+    const responseId = uuidv4();
+    await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO assessment_response (id, response) VALUES (?, ?)',
+        [responseId, JSON.stringify({ assessmentId, responses })],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Assessment submitted successfully' 
+    });
+
+  } catch (error) {
+    console.error('Submit assessment error:', error);
+    res.status(500).json({ error: 'Failed to submit assessment' });
+  }
+});
+
+// Add this endpoint to candidates.js
+
+router.post('/:candidateId/generate-analysis', authenticateToken, async (req, res) => {
+  try {
+    const { candidateId } = req.params;
+    const { jobId } = req.body;
+
+    if (!jobId) {
+      return res.status(400).json({ error: 'Job ID is required' });
+    }
+
+    // Get the assessment for this candidate-job combination
+    const assessment = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
+         FROM assessments a
+         JOIN candidates c ON a.candidate_id = c.id
+         JOIN job_positions j ON a.job_id = j.id
+         WHERE a.candidate_id = ? AND a.job_id = ?`,
+        [candidateId, jobId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found for this candidate and job' });
+    }
+
+    if (assessment.status !== 'completed') {
+      return res.status(400).json({ error: 'Assessment is not completed yet' });
+    }
+
+    // Check if analysis already exists AND has the correct structure
+    if (assessment.analysis) {
+      try {
+        const existingAnalysis = JSON.parse(assessment.analysis);
+        // Check if it has the expected structure with sectionAnalysis
+        if (existingAnalysis.sectionAnalysis && existingAnalysis.overallScore !== undefined) {
+          console.log('Valid analysis already exists, returning cached version');
+          return res.json({ 
+            message: 'Analysis already exists',
+            analysis: existingAnalysis,
+            cached: true
+          });
+        } else {
+          console.log('Analysis exists but has wrong structure, regenerating...');
+        }
+      } catch (parseError) {
+        console.log('Error parsing existing analysis, regenerating...', parseError);
+      }
+    }
+
+    // Get the responses from assessment_response table
+    const responseRecord = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM assessment_response WHERE response LIKE ?',
+        [`%"assessmentId":"${assessment.id}"%`],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!responseRecord) {
+      return res.status(404).json({ error: 'Assessment responses not found' });
+    }
+
+    const responseData = JSON.parse(responseRecord.response);
+    const questions = JSON.parse(assessment.questions);
+    const responses = responseData.responses;
+
+    console.log('Generating new analysis for candidate:', candidateId);
+    console.log('Questions:', JSON.stringify(questions, null, 2));
+    console.log('Responses:', JSON.stringify(responses, null, 2));
+
+    // Generate analysis using Groq
+    const analysis = await groqService.analyzeAssessmentResponses(questions, responses);
+
+    console.log('Generated analysis structure:', JSON.stringify(analysis, null, 2));
+
+    // Validate the analysis structure
+    if (!analysis.sectionAnalysis || analysis.overallScore === undefined) {
+      console.error('Invalid analysis structure received from Groq');
+      throw new Error('Analysis generated with invalid structure');
+    }
+
+    // Store the analysis in the assessments table
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE assessments SET analysis = ? WHERE id = ?',
+        [JSON.stringify(analysis), assessment.id],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    console.log('Analysis generated and saved successfully');
+
+    res.json({
+      success: true,
+      message: 'Analysis generated successfully',
+      analysis,
+      cached: false
+    });
+
+  } catch (error) {
+    console.error('Generate analysis error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate analysis' });
+  }
+});
+
+// Add new endpoint to get existing analysis
+router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) => {
+  try {
+    const { candidateId, jobId } = req.params;
+
+    const assessment = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
+         FROM assessments a
+         JOIN candidates c ON a.candidate_id = c.id
+         JOIN job_positions j ON a.job_id = j.id
+         WHERE a.candidate_id = ? AND a.job_id = ?`,
+        [candidateId, jobId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    if (!assessment.analysis) {
+      return res.status(404).json({ error: 'No analysis found for this assessment' });
+    }
+
+    const parsedAnalysis = JSON.parse(assessment.analysis);
+
+    res.json({
+      success: true,
+      analysis: parsedAnalysis,
+      candidateName: assessment.candidate_name,
+      jobTitle: assessment.job_title
+    });
+
+  } catch (error) {
+    console.error('Get analysis error:', error);
+    res.status(500).json({ error: 'Failed to retrieve analysis' });
+  }
+});
+
 // Get all candidates
 router.get('/', authenticateToken, (req, res) => {
   const page = parseInt(req.query.page) || 1;

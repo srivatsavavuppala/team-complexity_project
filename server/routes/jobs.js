@@ -246,7 +246,7 @@ router.post('/:id/generate-questions', authenticateToken, async (req, res) => {
   }
 });
 
-// Get job matches (candidates matched to this job)
+// Get job matches (candidates matched to this job) - UPDATED WITH ASSESSMENT STATUS
 router.get('/:id/matches', authenticateToken, (req, res) => {
   const jobId = req.params.id;
   const page = parseInt(req.query.page) || 1;
@@ -254,9 +254,17 @@ router.get('/:id/matches', authenticateToken, (req, res) => {
   const offset = (page - 1) * limit;
 
   const query = `
-    SELECT cm.*, c.name, c.email, c.phone, c.experience_years
+    SELECT 
+      cm.*, 
+      c.name, 
+      c.email, 
+      c.phone, 
+      c.experience_years,
+      c.id as candidate_id,
+      a.status as assessment_status
     FROM candidate_matches cm
     JOIN candidates c ON cm.candidate_id = c.id
+    LEFT JOIN assessments a ON a.candidate_id = c.id AND a.job_id = cm.job_position_id
     WHERE cm.job_position_id = ?
     ORDER BY cm.match_score DESC
     LIMIT ? OFFSET ?
