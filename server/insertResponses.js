@@ -6,83 +6,136 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, './database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // The specific assessment ID to insert responses for
-const ASSESSMENT_ID = '1ea2585d-69ba-415e-ab0c-01f3d1a98ba4';
+const ASSESSMENT_ID = '3dc3bb6b-8943-4a72-b298-21e427fbfc06';
 
 // Sample questions that would be generated
 const sampleQuestions = {
   technical: [
     {
-      question: "Explain the difference between let, const, and var in JavaScript.",
-      category: "technical",
-      difficulty: "medium"
+      "question": "What is your experience with Python and FastAPI? Can you give an example of a project you worked on?",
+      "category": "technical",
+      "difficulty": "easy"
     },
     {
-      question: "What is the Virtual DOM and how does React use it?",
-      category: "technical",
-      difficulty: "medium"
+      "question": "How do you optimize the performance of a RESTful API?",
+      "category": "technical",
+      "difficulty": "easy"
     },
     {
-      question: "How would you optimize a slow SQL query?",
-      category: "technical",
-      difficulty: "hard"
+      "question": "What is the difference between PostgreSQL and MySQL? When would you use each?",
+      "category": "technical",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Can you explain the concept of containerization and how Docker is used in software development?",
+      "category": "technical",
+      "difficulty": "easy"
+    },
+    {
+      "question": "How do you handle errors and exceptions in a Python application?",
+      "category": "technical",
+      "difficulty": "easy"
+    },
+    {
+      "question": "What is your experience with cloud platforms like AWS or GCP? Can you give an example of a project you deployed on one of these platforms?",
+      "category": "technical",
+      "difficulty": "easy"
     }
   ],
   behavioral: [
     {
-      question: "Tell me about a time when you had to work with a difficult team member.",
-      category: "behavioral",
-      difficulty: "medium"
+      "question": "Can you tell me about a time when you had to collaborate with a frontend developer to resolve an issue? How did you handle it?",
+      "category": "behavioral",
+      "difficulty": "easy"
     },
     {
-      question: "Describe a situation where you had to meet a tight deadline.",
-      category: "behavioral",
-      difficulty: "medium"
+      "question": "How do you approach debugging a complex issue in a large codebase?",
+      "category": "behavioral",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Can you describe a project you worked on where you had to write unit tests and integration tests? What tools did you use?",
+      "category": "behavioral",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Tell me about a time when you received feedback on your code. How did you handle it and what changes did you make?",
+      "category": "behavioral",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Can you describe your experience with code reviews? How do you approach reviewing someone else's code?",
+      "category": "behavioral",
+      "difficulty": "easy"
     }
   ],
   situational: [
     {
-      question: "If you discovered a security vulnerability in production code, what would you do?",
-      category: "situational",
-      difficulty: "hard"
+      "question": "If you were tasked with designing a new API endpoint, how would you approach it? What factors would you consider?",
+      "category": "situational",
+      "difficulty": "easy"
     },
     {
-      question: "How would you handle conflicting priorities from different stakeholders?",
-      category: "situational",
-      difficulty: "medium"
+      "question": "Suppose you are working on a project and you realize that the database schema needs to be changed. How would you handle this situation?",
+      "category": "situational",
+      "difficulty": "easy"
+    },
+    {
+      "question": "If you were tasked with optimizing the performance of a slow API endpoint, how would you approach it? What tools would you use?",
+      "category": "situational",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Can you describe a situation where you had to balance the trade-offs between different design considerations, such as performance, scalability, and maintainability?",
+      "category": "situational",
+      "difficulty": "easy"
     }
   ],
   cultural: [
     {
-      question: "What type of work environment helps you be most productive?",
-      category: "cultural",
-      difficulty: "easy"
+      "question": "What do you value most in a team and how do you think you can contribute to a positive team culture?",
+      "category": "cultural",
+      "difficulty": "easy"
     },
     {
-      question: "How do you approach continuous learning and professional development?",
-      category: "cultural",
-      difficulty: "medium"
+      "question": "Can you tell me about a time when you had to adapt to a new technology or process? How did you handle it?",
+      "category": "cultural",
+      "difficulty": "easy"
+    },
+    {
+      "question": "How do you prioritize your own professional development and stay up-to-date with industry trends and advancements?",
+      "category": "cultural",
+      "difficulty": "easy"
     }
   ]
 };
 
-// Sample responses - good quality
 const sampleResponses = {
   technical: [
-    "Let, const, and var differ in scope and mutability. Var is function-scoped and can be redeclared, while let and const are block-scoped. Const cannot be reassigned after initialization, making it ideal for constants. I prefer using const by default and let only when reassignment is needed.",
-    "The Virtual DOM is an in-memory representation of the actual DOM. React uses it to efficiently update the UI by comparing the virtual DOM with the previous version (diffing), then only updating the changed parts in the real DOM. This minimizes expensive DOM operations and improves performance.",
-    "To optimize a slow query, I would: 1) Use EXPLAIN to analyze the execution plan, 2) Add appropriate indexes on frequently queried columns, 3) Avoid SELECT *, 4) Consider denormalization if needed, 5) Use query caching, and 6) Break complex queries into smaller ones if possible."
+    "Python and FastAPI are basically the same thing. I usually just write SQL queries inside the frontend code.",
+    "I don't bother optimizing APIs; I just add more servers when it's slow.",
+    "PostgreSQL and MySQL are interchangeable; I never really check compatibility or performance.",
+    "Docker is just a way to compress files. I don't use containers in projects.",
+    "Errors in Python? I usually just ignore them and hope nothing crashes.",
+    "Cloud platforms are too complicated. I usually deploy projects by copying files via FTP."
   ],
   behavioral: [
-    "In my previous role, I worked with a team member who was resistant to code reviews. I scheduled a one-on-one to understand their concerns, explaining the benefits of peer review. We agreed on a constructive approach, and over time, they became one of our most thorough reviewers.",
-    "During a product launch, we had only two weeks instead of the planned month. I prioritized features using MoSCoW method, coordinated daily standups, and delegated effectively. We launched on time with all critical features, and added nice-to-haves in the next sprint."
+    "I avoid collaborating with others as much as possible. I prefer to do everything myself.",
+    "Debugging is unnecessary; I just guess what might be wrong.",
+    "I don't write unit tests or integration tests. Tests slow down development.",
+    "Feedback on my code? I usually ignore it or argue with the reviewer.",
+    "Code reviews are a waste of time; I rarely look at other people's code."
   ],
   situational: [
-    "I would immediately assess the severity and impact of the vulnerability. If critical, I'd notify my team lead and security team right away. I'd prepare a patch, test it thoroughly, and coordinate with the team for an emergency deployment. Then, I'd document the incident and conduct a post-mortem to prevent similar issues.",
-    "I would first understand the business impact of each priority, then arrange a meeting with all stakeholders to discuss trade-offs transparently. I'd propose a solution that balances different needs, document the decision, and ensure everyone agrees on the path forward."
+    "If I had to design a new API, I would just copy an existing endpoint without thinking about performance or security.",
+    "If the database schema needs changes, I just make random updates without informing the team.",
+    "Optimizing a slow API? I would just hope the user doesn't notice.",
+    "When balancing design trade-offs, I usually choose whatever is easiest for me, ignoring scalability and maintainability."
   ],
   cultural: [
-    "I thrive in collaborative environments with clear communication and autonomy. I appreciate having the flexibility to deep-focus when needed, but also enjoy pair programming and brainstorming sessions. Regular feedback and opportunities to learn from experienced colleagues are important to me.",
-    "I'm passionate about continuous learning. I dedicate time each week to reading technical blogs, working on side projects, and contributing to open source. I also attend conferences when possible and enjoy mentoring junior developers, which helps reinforce my own knowledge."
+    "I don't really care about team culture; I just want to finish my tasks.",
+    "Adapting to new technologies is boring, so I try to avoid it.",
+    "Professional development? I don't spend time learning new things; I just stick with what I know."
   ]
 };
 

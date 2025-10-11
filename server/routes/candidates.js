@@ -10,13 +10,13 @@ const crypto = require('crypto');
 const router = express.Router();
 const db = database.getDb();
 const nodemailer = require('nodemailer');
-
+const { generateAssessmentEmail } = require('../utils/assessmentEmailTemplate');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.GMAIL_USER, // your Gmail
-    pass: process.env.GMAIL_PASS  // app password
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
   }
 });
 
@@ -57,7 +57,7 @@ const parseExperienceYears = (resumeText) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -74,7 +74,6 @@ const upload = multer({
   }
 });
 
-// Validation schemas
 const candidateSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
   email: Joi.string().email().optional(),
@@ -161,7 +160,6 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
           return res.status(500).json({ error: 'Failed to save candidate' });
         }
 
-        // ✅ Auto-match candidate to all existing jobs here
         try {
           const jobs = await new Promise((resolve, reject) => {
             db.all('SELECT * FROM job_positions', [], (err, rows) => {
@@ -170,7 +168,7 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
             });
           });
 
-          if (availableJobs.length > 0) {
+          if (jobs.length > 0) {
             const candidateProfile = {
               name: candidateData.name,
               skills: analysis.skills || [],
@@ -183,9 +181,8 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
               summary: analysis.summary || ''
             };
 
-            const autoMatches = await groqService.autoMatchCandidateToJobs(candidateProfile, availableJobs);
+            const autoMatches = await groqService.autoMatchCandidateToJobs(candidateProfile, jobs);
             
-            // Save auto-matches to database
             if (autoMatches.matches && autoMatches.matches.length > 0) {
               const matchPromises = autoMatches.matches.map(match => {
                 return new Promise((resolve, reject) => {
@@ -207,7 +204,6 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
           }
         } catch (autoMatchError) {
           console.error('Auto-matching failed:', autoMatchError);
-          // Don't fail the entire request if auto-matching fails
         }
 
         res.status(201).json({
@@ -233,97 +229,7 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
   }
 });
 
-router.post('/:id/send-assessment', authenticateToken, async (req, res) => {
-  try {
-    const candidateId = req.params.id;
-    const { jobId, questions } = req.body;
-
-    const candidate = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, row) => err ? reject(err) : resolve(row));
-    });
-
-    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
-    const assessmentId = uuidv4();
-    const assessmentLink = `http://localhost:3000/Assess/${candidateId}`;
-    await new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO assessments (id, candidate_id, job_id, questions, status, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
-        [assessmentId, candidateId, jobId, JSON.stringify(questions), 'pending', new Date(Date.now() + 7*24*60*60*1000).toISOString()],
-        function(err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-
-    //SEND EMAIL
-    await transporter.sendMail({
-      from: `"TeamComplexity Assesment Mail" <${process.env.GMAIL_USER}>`,
-      to: candidate.email,
-      subject: `Assessment for Job`,
-      html: `
-        <p>Hello ${candidate.name},</p>
-        <p>Please complete your assessment by clicking below:</p>
-        <a href="${assessmentLink}" target="_blank">Start Assessment</a>
-        <p>Questions included in the assessment:</p>
-        <ul>
-          ${questions.technical?.map(q => `<li>${q.question}</li>`).join('') || ''}
-          ${questions.behavioral?.map(q => `<li>${q.question}</li>`).join('') || ''}
-          ${questions.situational?.map(q => `<li>${q.question}</li>`).join('') || ''}
-          ${questions.cultural?.map(q => `<li>${q.question}</li>`).join('') || ''}
-        </ul>
-        <p>Best regards,<br/>Your Company</p>
-      `
-    });
-
-    res.json({ message: `Assessment link sent to ${candidate.email}` });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to send assessment' });
-  }
-});
-
-router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) => {
-  try {
-    const { candidateId, jobId } = req.params;
-
-    const assessment = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
-         FROM assessments a
-         JOIN candidates c ON a.candidate_id = c.id
-         JOIN job_positions j ON a.job_id = j.id
-         WHERE a.candidate_id = ? AND a.job_id = ?`,
-        [candidateId, jobId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
-
-    if (!assessment) {
-      return res.status(404).json({ error: 'Assessment not found' });
-    }
-
-    if (!assessment.analysis) {
-      return res.status(404).json({ error: 'No analysis found for this assessment' });
-    }
-
-    res.json({
-      success: true,
-      analysis: JSON.parse(assessment.analysis),
-      candidateName: assessment.candidate_name,
-      jobTitle: assessment.job_title
-    });
-
-  } catch (error) {
-    console.error('Get analysis error:', error);
-    res.status(500).json({ error: 'Failed to retrieve analysis' });
-  }
-});
-
+// SINGLE CONSOLIDATED SEND ASSESSMENT ENDPOINT
 router.post('/:candidateId/send-assessment', authenticateToken, async (req, res) => {
   try {
     const { candidateId } = req.params;
@@ -344,6 +250,10 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
 
     if (!candidate) {
       return res.status(404).json({ error: 'Candidate not found' });
+    }
+
+    if (!candidate.email) {
+      return res.status(400).json({ error: 'Candidate does not have an email address' });
     }
 
     // Check if job exists
@@ -370,10 +280,13 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
       );
     });
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    let assessmentId;
 
     if (existingAssessment) {
-      // Update existing assessment (resend case)
+      // UPDATE existing assessment (resend case)
+      assessmentId = existingAssessment.id;
+      
       await new Promise((resolve, reject) => {
         db.run(
           `UPDATE assessments 
@@ -387,10 +300,10 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
         );
       });
 
-      console.log(`Assessment updated and resent for candidate ${candidateId}`);
+      console.log(`✅ Assessment UPDATED for candidate ${candidateId}, assessment ID: ${assessmentId}`);
     } else {
-      // Create new assessment
-      const assessmentId = uuidv4();
+      // CREATE new assessment
+      assessmentId = uuidv4();
       
       await new Promise((resolve, reject) => {
         db.run(
@@ -404,20 +317,47 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
         );
       });
 
-      console.log(`New assessment created with ID: ${assessmentId}`);
+      console.log(`✅ Assessment CREATED for candidate ${candidateId}, assessment ID: ${assessmentId}`);
     }
 
-    // TODO: Send email to candidate with assessment link
-    // Example: await emailService.sendAssessmentEmail(candidate.email, assessmentId, job.title);
-    
-    // For now, just log the assessment link
-    const assessmentLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/assessment/${existingAssessment?.id || uuidv4()}`;
-    console.log(`Assessment link for ${candidate.name}: ${assessmentLink}`);
+    // Generate assessment link
+    const assessmentLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/assess/${assessmentId}`;
+
+    // Generate beautiful email HTML
+    const emailHtml = generateAssessmentEmail({
+      candidateName: candidate.name,
+      jobTitle: job.title,
+      companyName: process.env.COMPANY_NAME || 'TeamComplexity',
+      assessmentLink: assessmentLink,
+      expiryDays: 7,
+      questions: questions,
+      jobDescription: job.description
+    });
+
+    // Send email
+    try {
+      await transporter.sendMail({
+        from: `"${process.env.COMPANY_NAME || 'TeamComplexity'} Recruitment" <${process.env.GMAIL_USER}>`,
+        to: candidate.email,
+        subject: `Assessment Invitation: ${job.title} Position`,
+        html: emailHtml
+      });
+
+      console.log(`📧 Assessment email sent to ${candidate.email}`);
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      return res.status(500).json({ 
+        error: 'Failed to send assessment email',
+        details: emailError.message 
+      });
+    }
 
     res.json({ 
       success: true, 
       message: `Assessment ${existingAssessment ? 'resent' : 'sent'} successfully to ${candidate.name}`,
-      assessmentLink // Remove this in production, only send via email
+      email: candidate.email,
+      expiresAt: expiresAt.toISOString(),
+      assessmentId: assessmentId
     });
 
   } catch (error) {
@@ -426,7 +366,7 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
   }
 });
 
-
+// GET assessment by ID (for candidates taking the test)
 router.get('/assessment/:assessmentId', async (req, res) => {
   try {
     const { assessmentId } = req.params;
@@ -450,12 +390,10 @@ router.get('/assessment/:assessmentId', async (req, res) => {
       return res.status(404).json({ error: 'Assessment not found' });
     }
 
-    // Check if assessment has expired
     if (new Date(assessment.expires_at) < new Date()) {
       return res.status(410).json({ error: 'Assessment has expired' });
     }
 
-    // Check if already completed
     if (assessment.status === 'completed') {
       return res.status(400).json({ error: 'Assessment already completed' });
     }
@@ -478,7 +416,7 @@ router.get('/assessment/:assessmentId', async (req, res) => {
   }
 });
 
-
+// SUBMIT assessment
 router.post('/assessment/:assessmentId/submit', async (req, res) => {
   try {
     const { assessmentId } = req.params;
@@ -488,7 +426,6 @@ router.post('/assessment/:assessmentId/submit', async (req, res) => {
       return res.status(400).json({ error: 'Responses are required' });
     }
 
-    // Get assessment
     const assessment = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM assessments WHERE id = ?', [assessmentId], (err, row) => {
         if (err) reject(err);
@@ -508,12 +445,10 @@ router.post('/assessment/:assessmentId/submit', async (req, res) => {
       return res.status(410).json({ error: 'Assessment has expired' });
     }
 
-    // Update assessment status to completed and store responses
+    // Update assessment status to completed
     await new Promise((resolve, reject) => {
       db.run(
-        `UPDATE assessments 
-         SET status = 'completed'
-         WHERE id = ?`,
+        `UPDATE assessments SET status = 'completed' WHERE id = ?`,
         [assessmentId],
         function(err) {
           if (err) reject(err);
@@ -546,8 +481,7 @@ router.post('/assessment/:assessmentId/submit', async (req, res) => {
   }
 });
 
-// Add this endpoint to candidates.js
-
+// GENERATE ANALYSIS
 router.post('/:candidateId/generate-analysis', authenticateToken, async (req, res) => {
   try {
     const { candidateId } = req.params;
@@ -557,7 +491,6 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       return res.status(400).json({ error: 'Job ID is required' });
     }
 
-    // Get the assessment for this candidate-job combination
     const assessment = await new Promise((resolve, reject) => {
       db.get(
         `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
@@ -581,11 +514,9 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       return res.status(400).json({ error: 'Assessment is not completed yet' });
     }
 
-    // Check if analysis already exists AND has the correct structure
     if (assessment.analysis) {
       try {
         const existingAnalysis = JSON.parse(assessment.analysis);
-        // Check if it has the expected structure with sectionAnalysis
         if (existingAnalysis.sectionAnalysis && existingAnalysis.overallScore !== undefined) {
           console.log('Valid analysis already exists, returning cached version');
           return res.json({ 
@@ -601,7 +532,6 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       }
     }
 
-    // Get the responses from assessment_response table
     const responseRecord = await new Promise((resolve, reject) => {
       db.get(
         'SELECT * FROM assessment_response WHERE response LIKE ?',
@@ -622,21 +552,14 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
     const responses = responseData.responses;
 
     console.log('Generating new analysis for candidate:', candidateId);
-    console.log('Questions:', JSON.stringify(questions, null, 2));
-    console.log('Responses:', JSON.stringify(responses, null, 2));
 
-    // Generate analysis using Groq
     const analysis = await groqService.analyzeAssessmentResponses(questions, responses);
 
-    console.log('Generated analysis structure:', JSON.stringify(analysis, null, 2));
-
-    // Validate the analysis structure
     if (!analysis.sectionAnalysis || analysis.overallScore === undefined) {
       console.error('Invalid analysis structure received from Groq');
       throw new Error('Analysis generated with invalid structure');
     }
 
-    // Store the analysis in the assessments table
     await new Promise((resolve, reject) => {
       db.run(
         'UPDATE assessments SET analysis = ? WHERE id = ?',
@@ -663,7 +586,7 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
   }
 });
 
-// Add new endpoint to get existing analysis
+// GET ANALYSIS
 router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) => {
   try {
     const { candidateId, jobId } = req.params;
@@ -706,7 +629,7 @@ router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) 
   }
 });
 
-// Get all candidates
+// GET ALL CANDIDATES
 router.get('/', authenticateToken, (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -726,19 +649,16 @@ router.get('/', authenticateToken, (req, res) => {
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
-  // Get total count
   db.get(countQuery, search ? [`%${search}%`, `%${search}%`, `%${search}%`] : [], (err, countResult) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // Get candidates
     db.all(query, params, (err, candidates) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
 
-      // Parse JSON fields
       const processedCandidates = candidates.map(candidate => ({
         ...candidate,
         skills: candidate.skills ? JSON.parse(candidate.skills) : [],
@@ -758,7 +678,7 @@ router.get('/', authenticateToken, (req, res) => {
   });
 });
 
-// Get candidate by ID
+// GET CANDIDATE BY ID
 router.get('/:id', authenticateToken, (req, res) => {
   db.get('SELECT * FROM candidates WHERE id = ?', [req.params.id], (err, candidate) => {
     if (err) {
@@ -769,7 +689,6 @@ router.get('/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: 'Candidate not found' });
     }
 
-    // Parse JSON fields
     candidate.skills = candidate.skills ? JSON.parse(candidate.skills) : [];
     candidate.resume_analysis = candidate.resume_analysis ? JSON.parse(candidate.resume_analysis) : null;
 
@@ -777,7 +696,7 @@ router.get('/:id', authenticateToken, (req, res) => {
   });
 });
 
-// Update candidate
+// UPDATE CANDIDATE
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { error, value } = candidateSchema.validate(req.body);
@@ -818,7 +737,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete candidate
+// DELETE CANDIDATE
 router.delete('/:id', authenticateToken, (req, res) => {
   db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], function(err) {
     if (err) {
@@ -833,7 +752,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
   });
 });
 
-// Get auto-matches for candidate
+// GET CANDIDATE MATCHES
 router.get('/:id/matches', authenticateToken, (req, res) => {
   const candidateId = req.params.id;
   const page = parseInt(req.query.page) || 1;
@@ -855,19 +774,16 @@ router.get('/:id/matches', authenticateToken, (req, res) => {
     WHERE cm.candidate_id = ?
   `;
 
-  // Get total count
   db.get(countQuery, [candidateId], (err, countResult) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // Get matches
     db.all(query, [candidateId, limit, offset], (err, matches) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
 
-      // Parse AI reasoning
       const processedMatches = matches.map(match => ({
         ...match,
         ai_reasoning: match.ai_reasoning ? JSON.parse(match.ai_reasoning) : null
@@ -886,13 +802,12 @@ router.get('/:id/matches', authenticateToken, (req, res) => {
   });
 });
 
-// Match candidate to job
+// MATCH CANDIDATE TO JOB
 router.post('/:id/match-job/:jobId', authenticateToken, async (req, res) => {
   try {
     const candidateId = req.params.id;
     const jobId = req.params.jobId;
 
-    // Get candidate and job data
     const candidate = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, row) => {
         if (err) reject(err);
@@ -911,7 +826,6 @@ router.post('/:id/match-job/:jobId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Candidate or job not found' });
     }
 
-    // Prepare candidate profile
     const candidateProfile = {
       name: candidate.name,
       skills: candidate.skills ? JSON.parse(candidate.skills) : [],
@@ -919,10 +833,8 @@ router.post('/:id/match-job/:jobId', authenticateToken, async (req, res) => {
       resumeAnalysis: candidate.resume_analysis ? JSON.parse(candidate.resume_analysis) : null
     };
 
-    // Get AI matching analysis
     const matchAnalysis = await groqService.matchCandidateToJob(candidateProfile, job.description);
 
-    // Save match result
     const matchId = uuidv4();
     db.run(
       'INSERT INTO candidate_matches (id, candidate_id, job_position_id, match_score, ai_reasoning) VALUES (?, ?, ?, ?, ?)',
