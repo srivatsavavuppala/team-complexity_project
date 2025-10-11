@@ -143,8 +143,8 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     };
 
     db.run(
-      `INSERT INTO candidates (id, name, email, phone, resume_text, resume_analysis, skills, experience_years)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO candidates (id, name, email, phone, resume_text, resume_analysis, skills, experience_years, current_job_title, current_company, education_level, education_field)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         candidateData.id,
         candidateData.name,
@@ -153,7 +153,11 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
         candidateData.resume_text,
         candidateData.resume_analysis,
         candidateData.skills,
-        candidateData.experience_years
+        candidateData.experience_years,
+        analysis.currentJobTitle || null,
+        analysis.currentCompany || null,
+        analysis.educationLevel || null,
+        analysis.educationField || null
       ],
       async function(err) {
         if (err) {
@@ -170,33 +174,48 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
             });
           });
 
-          for (const job of jobs) {
-            try {
-              const matchResult = await groqService.matchCandidateToJob(
-                {
-                  skills: analysis.skills || [],
-                  experienceYears: candidateData.experience_years,
-                  resumeText: candidateData.resume_text
-                },
-                job.description
-              );
+          if (availableJobs.length > 0) {
+            const candidateProfile = {
+              name: candidateData.name,
+              skills: analysis.skills || [],
+              experienceYears: analysis.experienceYears || 0,
+              currentJobTitle: analysis.currentJobTitle || '',
+              currentCompany: analysis.currentCompany || '',
+              educationLevel: analysis.educationLevel || '',
+              educationField: analysis.educationField || '',
+              overallScore: analysis.overallScore || 0,
+              summary: analysis.summary || ''
+            };
 
-              const matchId = uuidv4();
-              db.run(
-                `INSERT INTO candidate_matches (id, candidate_id, job_position_id, match_score, ai_reasoning, created_at)
-                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                [matchId, candidateId, job.id, matchResult.matchScore, JSON.stringify(matchResult)]
-              );
-            } catch (matchErr) {
-              console.error(`Failed to match candidate ${candidateId} to job ${job.id}:`, matchErr);
+            const autoMatches = await groqService.autoMatchCandidateToJobs(candidateProfile, availableJobs);
+            
+            // Save auto-matches to database
+            if (autoMatches.matches && autoMatches.matches.length > 0) {
+              const matchPromises = autoMatches.matches.map(match => {
+                return new Promise((resolve, reject) => {
+                  const matchId = uuidv4();
+                  db.run(
+                    'INSERT INTO candidate_matches (id, candidate_id, job_position_id, match_score, ai_reasoning) VALUES (?, ?, ?, ?, ?)',
+                    [matchId, candidateId, match.jobId, match.matchScore, JSON.stringify(match)],
+                    (err) => {
+                      if (err) reject(err);
+                      else resolve();
+                    }
+                  );
+                });
+              });
+
+              await Promise.all(matchPromises);
+              console.log(`Auto-matched candidate ${candidateData.name} to ${autoMatches.matches.length} jobs`);
             }
           }
-        } catch (matchError) {
-          console.error('Failed to auto-match candidate to jobs:', matchError);
+        } catch (autoMatchError) {
+          console.error('Auto-matching failed:', autoMatchError);
+          // Don't fail the entire request if auto-matching fails
         }
 
         res.status(201).json({
-          message: 'Resume uploaded, analyzed, and matched to jobs successfully',
+          message: 'Resume uploaded, analyzed, and auto-matched successfully',
           candidate: {
             id: candidateData.id,
             name: candidateData.name,
@@ -204,6 +223,9 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
             phone: candidateData.phone,
             skills: analysis.skills,
             experienceYears: analysis.experienceYears,
+            currentJobTitle: analysis.currentJobTitle,
+            currentCompany: analysis.currentCompany,
+            educationLevel: analysis.educationLevel,
             analysis: analysis
           }
         });
@@ -211,15 +233,6 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     );
   } catch (error) {
     console.error('Resume upload error:', error);
-    const errMsg = (error && (error.message || '')).toString();
-
-    if (errMsg.includes('UNABLE_TO_GET_ISSUER_CERT_LOCALLY') || errMsg.includes('unable to get local issuer certificate')) {
-      return res.status(502).json({
-        error: 'TLS certificate verification failed when calling the AI service. ' +
-               'If you are in a corporate network or using a proxy that inspects TLS, add your corporate root CA to Node using NODE_EXTRA_CA_CERTS.'
-      });
-    }
-
     res.status(500).json({ error: error.message || 'Failed to process resume' });
   }
 });
@@ -399,6 +412,59 @@ router.delete('/:id', authenticateToken, (req, res) => {
     }
 
     res.json({ message: 'Candidate deleted successfully' });
+  });
+});
+
+// Get auto-matches for candidate
+router.get('/:id/matches', authenticateToken, (req, res) => {
+  const candidateId = req.params.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  const query = `
+    SELECT cm.*, j.title, j.description, j.skills_required, j.experience_required
+    FROM candidate_matches cm
+    JOIN job_positions j ON cm.job_position_id = j.id
+    WHERE cm.candidate_id = ?
+    ORDER BY cm.match_score DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const countQuery = `
+    SELECT COUNT(*) as total
+    FROM candidate_matches cm
+    WHERE cm.candidate_id = ?
+  `;
+
+  // Get total count
+  db.get(countQuery, [candidateId], (err, countResult) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    // Get matches
+    db.all(query, [candidateId, limit, offset], (err, matches) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      // Parse AI reasoning
+      const processedMatches = matches.map(match => ({
+        ...match,
+        ai_reasoning: match.ai_reasoning ? JSON.parse(match.ai_reasoning) : null
+      }));
+
+      res.json({
+        matches: processedMatches,
+        pagination: {
+          page,
+          limit,
+          total: countResult.total,
+          pages: Math.ceil(countResult.total / limit)
+        }
+      });
+    });
   });
 });
 

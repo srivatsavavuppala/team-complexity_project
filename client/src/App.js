@@ -13,6 +13,7 @@ import CandidateDetail from './pages/CandidateDetail';
 import JobDetail from './pages/JobDetail';
 import InterviewDetail from './pages/InterviewDetail';
 import LoadingSpinner from './components/LoadingSpinner';
+import Assess from './pages/Assess';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -74,6 +75,7 @@ function App() {
                   <Route path="/interviews/:id" element={<InterviewDetail />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/Assess/:userId" element={<Assess/>} />
                 </Routes>
               </Layout>
             </ProtectedRoute>

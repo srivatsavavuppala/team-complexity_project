@@ -8,58 +8,66 @@ class GroqService {
   }
 
   async analyzeResume(resumeText, jobDescription = '') {
-  try {
-    const prompt = `
-      Analyze the following resume and provide a comprehensive evaluation:
-      
-      Resume Text:
-      ${resumeText}
-      
-      ${jobDescription ? `Job Description: ${jobDescription}` : ''}
-      
-      Please provide:
-      1. Skills extracted from the resume
-      2. Years of experience estimate
-      3. Key strengths and weaknesses
-      4. Overall assessment score (1-100)
-      5. Recommendations for improvement
-      ${jobDescription ? '6. Job fit analysis and compatibility score' : ''}
-      
-      Format your response as JSON:
-      {
-        "skills": ["skill1", "skill2", ...],
-        "experienceYears": number,
-        "strengths": ["strength1", "strength2", ...],
-        "weaknesses": ["weakness1", "weakness2", ...],
-        "overallScore": number,
-        "recommendations": ["rec1", "rec2", ...],
-        ${jobDescription ? '"jobFitScore": number,' : ''}
-        "summary": "Brief summary of the candidate"
-      }
-    `;
+    try {
+      const prompt = `
+        Analyze the following resume and provide a comprehensive evaluation. Pay special attention to extracting work experience accurately:
+        
+        Resume Text:
+        ${resumeText}
+        
+        ${jobDescription ? `Job Description: ${jobDescription}` : ''}
+        
+        For experience calculation, consider ALL formats:
+        - "2+ years experience" = 2 years
+        - "5-7 years" = 6 years (average)
+        - "2023-Present" = calculate from 2023 to current year
+        - "Jan 2022 - Dec 2023" = calculate the difference
+        - "Recent graduate" = 0 years
+        - Multiple jobs = sum total experience
+        - Overlapping positions = don't double count
+        
+        Please provide:
+        1. Skills extracted from the resume (programming languages, frameworks, tools, soft skills)
+        2. Total years of experience (calculate accurately from all work history)
+        3. Current/most recent job title and company
+        4. Education level and field
+        5. Key strengths and weaknesses
+        6. Overall assessment score (1-100)
+        7. Recommendations for improvement
+        ${jobDescription ? '8. Job fit analysis and compatibility score' : ''}
+        
+        Format your response as JSON with the following structure:
+        {
+          "skills": ["skill1", "skill2", ...],
+          "experienceYears": number,
+          "currentJobTitle": "string",
+          "currentCompany": "string", 
+          "educationLevel": "string",
+          "educationField": "string",
+          "strengths": ["strength1", "strength2", ...],
+          "weaknesses": ["weakness1", "weakness2", ...],
+          "overallScore": number,
+          "recommendations": ["rec1", "rec2", ...],
+          ${jobDescription ? '"jobFitScore": number,' : ''}
+          "summary": "Brief summary of the candidate",
+          "experienceBreakdown": "Detailed explanation of how experience was calculated"
+        }
+      `;
 
-    const completion = await this.client.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.3,
-      max_tokens: 2000
-    });
+      const completion = await this.client.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 2000
+      });
 
-    const response = completion.choices[0]?.message?.content;
-    const aiResult = this.parseJsonResponse(response);
-
-    // ✅ Ensure experienceYears always exists
-    if (!aiResult.experienceYears || isNaN(aiResult.experienceYears)) {
-      aiResult.experienceYears = 0;
+      const response = completion.choices[0]?.message?.content;
+      return this.parseJsonResponse(response);
+    } catch (error) {
+      console.error('Error analyzing resume:', error);
+      throw new Error('Failed to analyze resume');
     }
-
-    return aiResult;
-  } catch (error) {
-    console.error('Error analyzing resume:', error);
-    throw new Error(`Failed to analyze resume: ${error.message || String(error)}`);
   }
-}
-
 
   async generateInterviewQuestions(jobTitle, jobDescription, candidateSkills = [], difficulty = 'medium') {
     try {
@@ -201,6 +209,62 @@ class GroqService {
     }
   }
 
+  async autoMatchCandidateToJobs(candidateProfile, availableJobs) {
+    try {
+      const prompt = `
+        Analyze this candidate profile and automatically match them to the most suitable job positions:
+        
+        Candidate Profile:
+        ${JSON.stringify(candidateProfile, null, 2)}
+        
+        Available Job Positions:
+        ${JSON.stringify(availableJobs, null, 2)}
+        
+        For each job, calculate:
+        1. Match score (0-100) based on:
+           - Skills alignment (40%)
+           - Experience level fit (30%)
+           - Education requirements (20%)
+           - Other factors (10%)
+        2. Detailed reasoning for the score
+        3. Missing skills that candidate should develop
+        4. Recommendation (hire/interview/reject)
+        
+        Only return matches with score >= 30. Sort by match score descending.
+        
+        Format as JSON:
+        {
+          "matches": [
+            {
+              "jobId": "string",
+              "jobTitle": "string",
+              "matchScore": number,
+              "skillsMatched": ["skill1", "skill2"],
+              "skillsMissing": ["skill1", "skill2"],
+              "experienceFit": "underqualified|qualified|overqualified",
+              "recommendation": "hire|interview|reject",
+              "reasoning": "Detailed explanation of the match"
+            }
+          ],
+          "summary": "Overall assessment of candidate's job market fit"
+        }
+      `;
+
+      const completion = await this.client.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 3000
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      return this.parseJsonResponse(response);
+    } catch (error) {
+      console.error('Error in auto-matching:', error);
+      throw new Error('Failed to auto-match candidate to jobs');
+    }
+  }
+
   parseJsonResponse(response) {
     try {
       // Try to extract JSON from the response
@@ -209,6 +273,7 @@ class GroqService {
         return JSON.parse(jsonMatch[0]);
       }
       
+      // If no JSON found, return a structured error response
       return {
         error: 'Invalid response format',
         rawResponse: response

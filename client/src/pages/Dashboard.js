@@ -295,24 +295,21 @@ const Dashboard = () => {
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                      primary={item.title}
-                      /* Render the secondary typography as a block-level div so child chips/boxes
-                        won't produce invalid <div> inside <p> nesting. */
-                      secondaryTypographyProps={{ component: 'div' }}
-                      secondary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip
-                            label={item.type}
-                            size="small"
-                            variant="outlined"
-                            sx={{ textTransform: 'capitalize' }}
-                          />
-                          <Typography variant="caption" component="span">
-                            {new Date(item.timestamp).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                      }
-                    />
+                        primary={item.title}
+                        secondary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip
+                              label={item.type}
+                              size="small"
+                              variant="outlined"
+                              sx={{ textTransform: 'capitalize' }}
+                            />
+                            <Typography variant="caption">
+                              {new Date(item.timestamp).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        }
+                      />
                     </ListItem>
                   ))}
                 </List>
