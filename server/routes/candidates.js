@@ -143,8 +143,8 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     };
 
     db.run(
-      `INSERT INTO candidates (id, name, email, phone, resume_text, resume_analysis, skills, experience_years, current_job_title, current_company, education_level, education_field)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO candidates (id, name, email, phone, resume_text, resume_analysis, skills, experience_years)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         candidateData.id,
         candidateData.name,
@@ -153,11 +153,7 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
         candidateData.resume_text,
         candidateData.resume_analysis,
         candidateData.skills,
-        candidateData.experience_years,
-        analysis.currentJobTitle || null,
-        analysis.currentCompany || null,
-        analysis.educationLevel || null,
-        analysis.educationField || null
+        candidateData.experience_years
       ],
       async function(err) {
         if (err) {

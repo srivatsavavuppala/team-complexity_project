@@ -8,7 +8,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Delete all rows
-db.run('DELETE FROM assessments', function(err) {
+db.run('DELETE FROM job_positions', function(err) {
   if (err) console.error(err);
   else console.log(`Deleted ${this.changes} row(s) from candidates`);
 });
