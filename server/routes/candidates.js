@@ -83,45 +83,29 @@ const candidateSchema = Joi.object({
   experienceYears: Joi.number().integer().min(0).optional()
 });
 
-// Upload and analyze resume
 router.post('/upload-resume', authenticateToken, upload.single('resume'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No resume file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'No resume file uploaded' });
 
-    // Parse the resume file
     const parsedResume = await fileParser.parseResume(req.file);
     const contactInfo = fileParser.extractContactInfo(parsedResume.text);
 
-    // resolve key identifiers
     const email = (req.body.email || contactInfo.email || '').trim() || null;
     const phone = (req.body.phone || contactInfo.phone || '').trim() || null;
     const name = (req.body.name || contactInfo.name || 'Unknown').trim();
 
-    // Build a query to check for existing candidate:
-    // Prefer checking by email or phone if available, else fall back to exact resume_text match.
     const existingCandidate = await new Promise((resolve, reject) => {
       if (email || phone) {
-        // dynamic params for the query
         const whereClauses = [];
         const params = [];
-        if (email) {
-          whereClauses.push('email = ?');
-          params.push(email);
-        }
-        if (phone) {
-          whereClauses.push('phone = ?');
-          params.push(phone);
-        }
+        if (email) { whereClauses.push('email = ?'); params.push(email); }
+        if (phone) { whereClauses.push('phone = ?'); params.push(phone); }
 
-        const checkQuery = `SELECT * FROM candidates WHERE ${whereClauses.join(' OR ')} LIMIT 1`;
-        db.get(checkQuery, params, (err, row) => {
+        db.get(`SELECT * FROM candidates WHERE ${whereClauses.join(' OR ')} LIMIT 1`, params, (err, row) => {
           if (err) return reject(err);
           resolve(row);
         });
       } else {
-        // no email/phone: fall back to exact resume_text match (best-effort)
         db.get('SELECT * FROM candidates WHERE resume_text = ? LIMIT 1', [parsedResume.text], (err, row) => {
           if (err) return reject(err);
           resolve(row);
@@ -130,7 +114,6 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     });
 
     if (existingCandidate) {
-      // Candidate already exists — return 409 Conflict with existing id and a friendly message
       return res.status(409).json({
         error: 'Candidate profile already exists',
         message: 'A candidate with the same email/phone or identical resume already exists.',
@@ -143,17 +126,16 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
       });
     }
 
-    // Analyze resume with AI
     const analysis = await groqService.analyzeResume(parsedResume.text);
-    // ✅ Calculate total experience from resume text (any format)
     const calculatedExperience = parseExperienceYears(parsedResume.text);
     analysis.experienceYears = calculatedExperience;
+
     const candidateId = uuidv4();
     const candidateData = {
       id: candidateId,
-      name: name,
-      email: email,
-      phone: phone,
+      name,
+      email,
+      phone,
       resume_text: parsedResume.text,
       resume_analysis: JSON.stringify(analysis),
       skills: JSON.stringify(analysis.skills || []),
@@ -173,15 +155,48 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
         candidateData.skills,
         candidateData.experience_years
       ],
-      function(err) {
+      async function(err) {
         if (err) {
           console.error('Database error:', err);
-          // If you create UNIQUE constraints at DB-level this can catch unique-violation errors too.
           return res.status(500).json({ error: 'Failed to save candidate' });
         }
 
+        // ✅ Auto-match candidate to all existing jobs here
+        try {
+          const jobs = await new Promise((resolve, reject) => {
+            db.all('SELECT * FROM job_positions', [], (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows);
+            });
+          });
+
+          for (const job of jobs) {
+            try {
+              const matchResult = await groqService.matchCandidateToJob(
+                {
+                  skills: analysis.skills || [],
+                  experienceYears: candidateData.experience_years,
+                  resumeText: candidateData.resume_text
+                },
+                job.description
+              );
+
+              const matchId = uuidv4();
+              db.run(
+                `INSERT INTO candidate_matches (id, candidate_id, job_position_id, match_score, ai_reasoning, created_at)
+                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                [matchId, candidateId, job.id, matchResult.matchScore, JSON.stringify(matchResult)]
+              );
+            } catch (matchErr) {
+              console.error(`Failed to match candidate ${candidateId} to job ${job.id}:`, matchErr);
+            }
+          }
+        } catch (matchError) {
+          console.error('Failed to auto-match candidate to jobs:', matchError);
+        }
+
         res.status(201).json({
-          message: 'Resume uploaded and analyzed successfully',
+          message: 'Resume uploaded, analyzed, and matched to jobs successfully',
           candidate: {
             id: candidateData.id,
             name: candidateData.name,
@@ -196,15 +211,12 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     );
   } catch (error) {
     console.error('Resume upload error:', error);
-
-    // Detect common Node TLS / corporate proxy certificate error and return a helpful message.
     const errMsg = (error && (error.message || '')).toString();
 
     if (errMsg.includes('UNABLE_TO_GET_ISSUER_CERT_LOCALLY') || errMsg.includes('unable to get local issuer certificate')) {
       return res.status(502).json({
         error: 'TLS certificate verification failed when calling the AI service. ' +
-               'If you are in a corporate network or using a proxy that inspects TLS, add your corporate root CA to Node using NODE_EXTRA_CA_CERTS or set HTTPS_PROXY/HTTP_PROXY. ' +
-               'For debugging only, you can temporarily set NODE_TLS_REJECT_UNAUTHORIZED=0, but do NOT use that in production.'
+               'If you are in a corporate network or using a proxy that inspects TLS, add your corporate root CA to Node using NODE_EXTRA_CA_CERTS.'
       });
     }
 
