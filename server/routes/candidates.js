@@ -248,7 +248,7 @@ router.post('/:id/send-assessment', authenticateToken, async (req, res) => {
 
     if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
     const assessmentId = uuidv4();
-    const assessmentLink = `https://your-frontend.com/assessment/${candidate.id}`;
+    const assessmentLink = `http://localhost:3000/Assess/${candidateId}`;
     await new Promise((resolve, reject) => {
       db.run(
         `INSERT INTO assessments (id, candidate_id, job_id, questions, status, created_at, expires_at)

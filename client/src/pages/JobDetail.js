@@ -28,13 +28,12 @@ import {
   ArrowBack as ArrowBackIcon,
   Psychology as PsychologyIcon,
   People as PeopleIcon,
-  Assignment as AssignmentIcon,
   Work as WorkIcon,
-  AccessTime as TimeIcon,
   Person as PersonIcon,
+  Send as SendIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery } from 'react-query';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -112,6 +111,7 @@ const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGe
         ) : (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6" gutterBottom>Generated Questions:</Typography>
+
             {questions.technical && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -190,12 +190,123 @@ const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGe
         )}
         {questions && (
           <Button
-            onClick={() => setQuestions(null)}
+            onClick={() => {
+              onQuestionsGenerated?.(questions);
+              setQuestions(null);
+            }}
             variant="outlined"
           >
-            Generate New Questions
+            Save & Close
           </Button>
         )}
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const SendAssessmentDialog = ({ open, onClose, candidate, job, questions, onSent }) => {
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      // Send to your server: candidate endpoint should send the email containing the assessment link & questions
+      await axios.post(`/api/candidates/${candidate.candidate_id}/send-assessment`, {
+        jobId: job.id || job.job_id || job._id || job.id,
+        questions,
+      });
+      toast.success(`Assessment sent to ${candidate.name}`);
+      onSent?.();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send assessment');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Send Assessment to {candidate?.name}</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          This will send an email containing the assessment link and the following questions.
+        </Typography>
+
+        {!questions ? (
+          <Typography variant="body2">No questions available.</Typography>
+        ) : (
+          <Box>
+            {/* Show a concise preview of the questions */}
+            {questions.technical && (
+              <>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
+                  Technical
+                </Typography>
+                <List dense>
+                  {questions.technical.slice(0, 5).map((q, i) => (
+                    <ListItem key={`t-${i}`} dense>
+                      <ListItemText primary={q.question} secondary={q.difficulty ? `Difficulty: ${q.difficulty}` : ''} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+            {questions.behavioral && (
+              <>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
+                  Behavioral
+                </Typography>
+                <List dense>
+                  {questions.behavioral.slice(0, 5).map((q, i) => (
+                    <ListItem key={`b-${i}`} dense>
+                      <ListItemText primary={q.question} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+            {questions.situational && (
+              <>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
+                  Situational
+                </Typography>
+                <List dense>
+                  {questions.situational.slice(0, 5).map((q, i) => (
+                    <ListItem key={`s-${i}`} dense>
+                      <ListItemText primary={q.question} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+            {questions.cultural && (
+              <>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
+                  Cultural
+                </Typography>
+                <List dense>
+                  {questions.cultural.slice(0, 5).map((q, i) => (
+                    <ListItem key={`c-${i}`} dense>
+                      <ListItemText primary={q.question} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={sending}>Cancel</Button>
+        <Button
+          onClick={handleSend}
+          variant="contained"
+          startIcon={<SendIcon />}
+          disabled={sending || !questions}
+        >
+          {sending ? 'Sending...' : 'Send Assessment Link'}
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -205,6 +316,12 @@ const JobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [questionsDialogOpen, setQuestionsDialogOpen] = useState(false);
+  const [lastGeneratedQuestions, setLastGeneratedQuestions] = useState(null);
+
+  // For sending confirmation
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [sendingAutoGenerate, setSendingAutoGenerate] = useState(false);
 
   const { data: job, isLoading: jobLoading, error: jobError } = useQuery(
     ['job', id],
@@ -228,6 +345,33 @@ const JobDetail = () => {
       </Alert>
     );
   }
+
+  const openSendDialogFor = async (candidate) => {
+    // If we already have generated questions, open preview dialog
+    if (lastGeneratedQuestions) {
+      setSelectedCandidate(candidate);
+      setSendDialogOpen(true);
+      return;
+    }
+
+    // Otherwise auto-generate a set (medium, no skills) then open preview
+    setSendingAutoGenerate(true);
+    try {
+      const resp = await axios.post(`/api/jobs/${id}/generate-questions`, {
+        difficulty: 'medium',
+        candidateSkills: [],
+      });
+      const generated = resp.data.questions;
+      setLastGeneratedQuestions(generated);
+      setSelectedCandidate(candidate);
+      setSendDialogOpen(true);
+      toast.success('Questions auto-generated for sending.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to generate questions');
+    } finally {
+      setSendingAutoGenerate(false);
+    }
+  };
 
   return (
     <Box>
@@ -397,7 +541,31 @@ const JobDetail = () => {
                           borderRadius: 1,
                           '&:hover': { bgcolor: 'action.hover' },
                         }}
-                        onClick={() => navigate(`/candidates/${match.candidate_id}`)}
+                        // navigate when clicking on the body; use button area for send
+                        onClick={(e) => {
+                          // avoid navigating when Send button is clicked
+                          if ((e.target.closest && e.target.closest('button')) || e.target.tagName === 'BUTTON') return;
+                          navigate(`/candidates/${match.candidate_id}`);
+                        }}
+                        secondaryAction={
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="Send Assessment Link">
+                              <span>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openSendDialogFor(match);
+                                  }}
+                                  disabled={sendingAutoGenerate}
+                                >
+                                  <SendIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Box>
+                        }
                       >
                         <Avatar sx={{ mr: 2 }}>
                           <PersonIcon />
@@ -443,6 +611,23 @@ const JobDetail = () => {
         onClose={() => setQuestionsDialogOpen(false)}
         jobId={id}
         jobTitle={job?.title}
+        onQuestionsGenerated={(questions) => {
+          setLastGeneratedQuestions(questions);
+        }}
+      />
+
+      <SendAssessmentDialog
+        open={sendDialogOpen}
+        onClose={() => {
+          setSendDialogOpen(false);
+          setSelectedCandidate(null);
+        }}
+        candidate={selectedCandidate}
+        job={job}
+        questions={lastGeneratedQuestions}
+        onSent={() => {
+          // optional: track sent state per candidate or refresh matches
+        }}
       />
     </Box>
   );
