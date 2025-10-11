@@ -186,7 +186,7 @@ class GroqService {
         ]
       }
     },
-    "recommendation": "<HIRE|CONSIDER|REJECT>",
+    "recommendation": "<Schedule an Interview|REJECT>",
     "recommendationReason": "<detailed explanation of recommendation>",
     "keyTakeaways": ["<takeaway 1>", "<takeaway 2>", "<takeaway 3>"]
   }

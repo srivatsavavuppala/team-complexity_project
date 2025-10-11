@@ -644,7 +644,7 @@ const JobDetail = () => {
     setSendingAutoGenerate(true);
     try {
       const resp = await axios.post(`/api/jobs/${id}/generate-questions`, {
-        difficulty: 'medium',
+        difficulty: 'easy',
         candidateSkills: [],
       });
       const generated = resp.data.questions;
