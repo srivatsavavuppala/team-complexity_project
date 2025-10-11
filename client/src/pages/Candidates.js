@@ -54,6 +54,7 @@ const CandidateCard = ({ candidate, onView }) => (
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {candidate.experience_years} years experience
+              {candidate.current_job_title && ` • ${candidate.current_job_title}`}
             </Typography>
           </Box>
           {/* <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(candidate.id); }}>

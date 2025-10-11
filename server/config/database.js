@@ -34,6 +34,10 @@ class Database {
         resume_analysis TEXT,
         skills TEXT,
         experience_years INTEGER,
+        current_job_title TEXT,
+        current_company TEXT,
+        education_level TEXT,
+        education_field TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
