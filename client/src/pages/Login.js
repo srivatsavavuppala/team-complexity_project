@@ -134,7 +134,7 @@ const Login = () => {
                 <Psychology fontSize="large" />
               </Avatar>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                AI Recruiter
+                Team Complexity - AI Recruiter
               </Typography>
             </Box>
             <Typography variant="h3" sx={{ fontWeight: 700, mb: 3, lineHeight: 1.2 }}>
@@ -312,7 +312,7 @@ const Login = () => {
                       color: 'text.secondary',
                     }}
                   >
-                    New to AI Recruiter?
+                    New to our Recruiting Platform?
                   </Typography>
                 </Box>
 

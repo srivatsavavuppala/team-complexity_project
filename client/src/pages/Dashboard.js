@@ -47,7 +47,7 @@ const StatCard = ({ title, value, icon, color, trend }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
+    <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
@@ -115,7 +115,7 @@ const Dashboard = () => {
   const experienceData = pipeline?.candidatesByExperience || [];
 
   return (
-    <Box>
+    <Box sx={{ overflowX: 'hidden' }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
         Dashboard
       </Typography>
