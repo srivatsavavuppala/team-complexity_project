@@ -169,13 +169,6 @@ const CandidateDetail = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Candidate Profile
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AssignmentIcon />}
-          onClick={() => setMatchDialogOpen(true)}
-        >
-          Match to Job
-        </Button>
       </Box>
 
       <Grid container spacing={3}>

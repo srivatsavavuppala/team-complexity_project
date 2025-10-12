@@ -8,7 +8,6 @@ import {
   Typography,
   Link,
   Alert,
-  Container,
   Avatar,
   InputAdornment,
   IconButton,
@@ -19,6 +18,7 @@ import {
   Email,
   Lock,
   Psychology,
+  ArrowForward,
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -70,48 +70,152 @@ const Login = () => {
       sx={{
         minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        p: 2,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Container maxWidth="sm">
+      {/* Animated Background Elements */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '-50%',
+          right: '-10%',
+          width: '600px',
+          height: '600px',
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: '50%',
+          filter: 'blur(40px)',
+        }}
+      />
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: '-50%',
+          left: '-10%',
+          width: '500px',
+          height: '500px',
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '50%',
+          filter: 'blur(40px)',
+        }}
+      />
+
+      {/* Left Side - Features */}
+      <Box
+        sx={{
+          flex: 1,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          p: 6,
+          color: 'white',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          style={{ width: '100%' }}
+        >
+          <Box sx={{ mb: 8 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+              <Avatar
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  width: 50,
+                  height: 50,
+                  backdropFilter: 'blur(10px)',
+                }}
+              >
+                <Psychology fontSize="large" />
+              </Avatar>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                AI Recruiter
+              </Typography>
+            </Box>
+            <Typography variant="h3" sx={{ fontWeight: 700, mb: 3, lineHeight: 1.2 }}>
+              Revolutionize Your Hiring
+            </Typography>
+            <Typography variant="body1" sx={{ fontSize: '1.1rem', opacity: 0.9 }}>
+              Leverage AI-powered assessments to find the perfect candidates faster and smarter.
+            </Typography>
+          </Box>
+
+          {/* Feature List */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {[
+              { icon: '⚡', title: 'Smart Matching', desc: 'AI-powered candidate matching' },
+              { icon: '🎯', title: 'Accurate Assessments', desc: 'Comprehensive evaluations' },
+              { icon: '📊', title: 'Real-time Analytics', desc: 'Data-driven insights' },
+              { icon: '🔒', title: 'Enterprise Security', desc: 'Bank-level protection' },
+            ].map((feature, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * idx }}
+              >
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box sx={{ fontSize: '2rem' }}>{feature.icon}</Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {feature.title}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      {feature.desc}
+                    </Typography>
+                  </Box>
+                </Box>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+      </Box>
+
+      {/* Right Side - Login Form */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 4,
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{ width: '100%' }}
         >
           <Card
             sx={{
               borderRadius: 3,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-              overflow: 'visible',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
             }}
           >
             <CardContent sx={{ p: 4 }}>
-              <Box sx={{ textAlign: 'center', mb: 4 }}>
-                <Avatar
-                  sx={{
-                    bgcolor: 'primary.main',
-                    width: 64,
-                    height: 64,
-                    mx: 'auto',
-                    mb: 2,
-                  }}
-                >
-                  <Psychology fontSize="large" />
-                </Avatar>
-                <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-                  AI Recruiter
+              <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                  Welcome Back
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  Sign in to your account
+                <Typography variant="body2" color="text.secondary">
+                  Sign in to your account to continue
                 </Typography>
               </Box>
 
               {errors.root && (
-                <Alert severity="error" sx={{ mb: 3 }}>
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                   {errors.root.message}
                 </Alert>
               )}
@@ -125,11 +229,11 @@ const Login = () => {
                   autoComplete="email"
                   error={!!errors.email}
                   helperText={errors.email?.message}
-                  sx={{ mb: 3 }}
+                  sx={{ mb: 2.5 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Email color="action" />
+                        <Email sx={{ color: 'primary.main', mr: 1 }} />
                       </InputAdornment>
                     ),
                   }}
@@ -143,11 +247,11 @@ const Login = () => {
                   autoComplete="current-password"
                   error={!!errors.password}
                   helperText={errors.password?.message}
-                  sx={{ mb: 3 }}
+                  sx={{ mb: 2.5 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Lock color="action" />
+                        <Lock sx={{ color: 'primary.main', mr: 1 }} />
                       </InputAdornment>
                     ),
                     endAdornment: (
@@ -156,8 +260,9 @@ const Login = () => {
                           aria-label="toggle password visibility"
                           onClick={() => setShowPassword(!showPassword)}
                           edge="end"
+                          size="small"
                         >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -170,39 +275,87 @@ const Login = () => {
                   variant="contained"
                   size="large"
                   disabled={loading}
+                  endIcon={<ArrowForward />}
                   sx={{
                     mb: 3,
                     py: 1.5,
-                    fontSize: '1.1rem',
-                    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                    },
                   }}
                 >
                   {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
 
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Don't have an account?{' '}
-                    <Link
-                      component={RouterLink}
-                      to="/register"
-                      sx={{ fontWeight: 600, textDecoration: 'none' }}
-                    >
-                      Sign up here
-                    </Link>
+                <Box sx={{ textAlign: 'center', position: 'relative', mb: 3 }}>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: 0,
+                      right: 0,
+                      height: '1px',
+                      bgcolor: 'divider',
+                    }}
+                  />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      position: 'relative',
+                      bgcolor: 'background.paper',
+                      px: 2,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    New to AI Recruiter?
                   </Typography>
                 </Box>
+
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  fullWidth
+                  variant="outlined"
+                  size="large"
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    '&:hover': {
+                      bgcolor: 'rgba(102, 126, 234, 0.08)',
+                      borderColor: 'primary.main',
+                    },
+                  }}
+                >
+                  Create Account
+                </Button>
               </Box>
             </CardContent>
           </Card>
 
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="white" sx={{ opacity: 0.8 }}>
-              🤖 Powered by AI • 🚀 Enterprise Ready • 🔒 Secure
-            </Typography>
-          </Box>
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              textAlign: 'center',
+              mt: 3,
+              color: 'white',
+              opacity: 0.7,
+            }}
+          >
+            By signing in, you agree to our Terms of Service and Privacy Policy
+          </Typography>
         </motion.div>
-      </Container>
+      </Box>
     </Box>
   );
 };
