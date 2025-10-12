@@ -250,11 +250,10 @@ const InterviewDetail = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/interviews')}
-          sx={{ mr: 2 }}
         >
           Back to Interviews
         </Button>
@@ -265,11 +264,13 @@ const InterviewDetail = () => {
         {interview?.status === 'scheduled' && (
           <Button
             variant="contained"
+            size="large"
             startIcon={<PlayIcon />}
             onClick={() => startInterviewMutation.mutate()}
             disabled={startInterviewMutation.isLoading}
+            sx={{ whiteSpace: 'nowrap' }}
           >
-            Start Interview
+            {startInterviewMutation.isLoading ? 'Starting...' : 'Start Interview'}
           </Button>
         )}
         
@@ -277,14 +278,15 @@ const InterviewDetail = () => {
           <Button
             variant="contained"
             color="success"
+            size="large"
             startIcon={<CheckIcon />}
             onClick={() => setCompleteDialogOpen(true)}
+            sx={{ whiteSpace: 'nowrap' }}
           >
             Complete Interview
           </Button>
         )}
       </Box>
-
       <Grid container spacing={3}>
         {/* Interview Information */}
         <Grid item xs={12} md={6}>
@@ -388,7 +390,7 @@ const InterviewDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Card>
+            {/* <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   Interview Questions
@@ -432,7 +434,7 @@ const InterviewDetail = () => {
                   </Typography>
                 )}
               </CardContent>
-            </Card>
+            </Card> */}
           </motion.div>
         </Grid>
 

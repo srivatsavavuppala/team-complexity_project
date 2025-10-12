@@ -26,6 +26,7 @@ import {
   CircularProgress,
   LinearProgress,
 } from '@mui/material';
+
 import {
   ArrowBack as ArrowBackIcon,
   Psychology as PsychologyIcon,
@@ -45,6 +46,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
+import {Calendar as CalendarIcon} from '@mui/icons-material'
 
 const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGenerated }) => {
   const [difficulty, setDifficulty] = useState('medium');
@@ -211,7 +213,7 @@ const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGe
   );
 };
 
-const AnalysisDialog = ({ open, onClose, candidate, analysis, loading }) => {
+const AnalysisDialog = ({ open, onClose, candidate, analysis, loading, job }) => {
   const navigate = useNavigate();
 
   // Validate analysis structure
@@ -403,7 +405,7 @@ const AnalysisDialog = ({ open, onClose, candidate, analysis, loading }) => {
               <Box sx={{ 
                 mt: 3, 
                 p: 3, 
-                bgcolor: analysis.recommendation === 'HIRE' ? 'success.light' : 
+                bgcolor: analysis.recommendation === 'Schedule an Interview' ? 'success.light' : 
                          analysis.recommendation === 'CONSIDER' ? 'warning.light' : 'error.light',
                 borderRadius: 2 
               }}>
@@ -442,18 +444,40 @@ const AnalysisDialog = ({ open, onClose, candidate, analysis, loading }) => {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-        {analysis && (
-          <Button
-            onClick={() => {
-              navigate(`/candidates/${candidate?.candidate_id}`);
-            }}
-            variant="contained"
-          >
-            View Candidate Profile
-          </Button>
-        )}
-      </DialogActions>
+  <Button onClick={onClose}>Close</Button>
+  {analysis && (
+    <>
+      <Button
+        onClick={() => {
+          navigate(`/candidates/${candidate?.candidate_id}`);
+        }}
+        variant="outlined"
+      >
+        View Candidate Profile
+      </Button>
+      {analysis.recommendation === 'Schedule an Interview' && (
+        <Button
+          onClick={() => {
+            onClose();
+            navigate(`/interviews/schedule`, {
+              state: {
+                candidateId: candidate?.candidate_id,
+                candidateName: candidate?.name,
+                jobId: job?.id,
+                jobTitle: job?.title,
+                jobDescription: job?.description,
+              }
+            });
+          }}
+          variant="contained"
+          color="success"
+        >
+          Schedule Interview
+        </Button>
+      )}
+    </>
+  )}
+</DialogActions>
     </Dialog>
   );
 };
@@ -1040,6 +1064,7 @@ const handleGenerateOrViewAnalysis = async (candidate) => {
         candidate={selectedCandidate}
         analysis={generatedAnalysis}
         loading={generatingAnalysis !== null}
+        job={job}
       />
     </Box>
   );

@@ -62,13 +62,13 @@ const InterviewCard = ({ interview, onView }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => onView(interview.id)}>
+    <Card sx={{ height: '100%', minWidth: 300, cursor: 'pointer' }} onClick={() => onView(interview.id)}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
           <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
             <InterviewIcon />
           </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1 , minWidth: 400}}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {interview.candidate_name}
             </Typography>

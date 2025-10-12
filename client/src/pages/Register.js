@@ -179,8 +179,8 @@ const Register = () => {
                           </InputAdornment>
                         }
                       >
-                        <MenuItem value="recruiter">Recruiter</MenuItem>
-                        <MenuItem value="interviewer">Interviewer</MenuItem>
+                        <MenuItem disabled={true} value="recruiter">Recruiter</MenuItem>
+                        <MenuItem disabled={true} value="interviewer">Interviewer</MenuItem>
                         <MenuItem value="admin">Admin</MenuItem>
                       </Select>
                       {errors.role && (

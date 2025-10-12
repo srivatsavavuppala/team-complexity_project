@@ -11,6 +11,7 @@ import Jobs from './pages/Jobs';
 import Interviews from './pages/Interviews';
 import CandidateDetail from './pages/CandidateDetail';
 import JobDetail from './pages/JobDetail';
+import ScheduleInterviewFromAnalysis from './pages/ScheduleInterviewFromAnalysis';
 import InterviewDetail from './pages/InterviewDetail';
 import LoadingSpinner from './components/LoadingSpinner';
 import Assess from './pages/Assess';
@@ -73,6 +74,7 @@ function App() {
                   <Route path="/jobs/:id" element={<JobDetail />} />
                   <Route path="/interviews" element={<Interviews />} />
                   <Route path="/interviews/:id" element={<InterviewDetail />} />
+                  <Route path="/interviews/schedule" element={<ScheduleInterviewFromAnalysis />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/Assess/:userId" element={<Assess/>} />
