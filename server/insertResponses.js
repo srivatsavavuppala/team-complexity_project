@@ -6,107 +6,36 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, './database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // The specific assessment ID to insert responses for
-const ASSESSMENT_ID = '3dc3bb6b-8943-4a72-b298-21e427fbfc06';
+const ASSESSMENT_ID = '808263e0-83e9-4a2c-8e43-9d4a7572346b';
 
 // Sample questions that would be generated
 const sampleQuestions = {
   technical: [
-    {
-      "question": "What is your experience with Python and FastAPI? Can you give an example of a project you worked on?",
-      "category": "technical",
-      "difficulty": "easy"
-    },
-    {
-      "question": "How do you optimize the performance of a RESTful API?",
-      "category": "technical",
-      "difficulty": "easy"
-    },
-    {
-      "question": "What is the difference between PostgreSQL and MySQL? When would you use each?",
-      "category": "technical",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Can you explain the concept of containerization and how Docker is used in software development?",
-      "category": "technical",
-      "difficulty": "easy"
-    },
-    {
-      "question": "How do you handle errors and exceptions in a Python application?",
-      "category": "technical",
-      "difficulty": "easy"
-    },
-    {
-      "question": "What is your experience with cloud platforms like AWS or GCP? Can you give an example of a project you deployed on one of these platforms?",
-      "category": "technical",
-      "difficulty": "easy"
-    }
+    {"question":"What is your experience with Python, and how have you used it in previous projects?","category":"technical","difficulty":"easy"},
+    {"question":"Can you explain the difference between monolithic architecture and microservices architecture?","category":"technical","difficulty":"easy"},
+    {"question":"How do you optimize the performance of a PostgreSQL database?","category":"technical","difficulty":"medium"},
+    {"question":"What is FastAPI, and how does it differ from other Python web frameworks like Flask or Django?","category":"technical","difficulty":"easy"},
+    {"question":"Can you write a simple RESTful API using Python and FastAPI?","category":"technical","difficulty":"medium"},
+    {"question":"How do you handle errors and exceptions in a Python application?","category":"technical","difficulty":"easy"}
   ],
   behavioral: [
-    {
-      "question": "Can you tell me about a time when you had to collaborate with a frontend developer to resolve an issue? How did you handle it?",
-      "category": "behavioral",
-      "difficulty": "easy"
-    },
-    {
-      "question": "How do you approach debugging a complex issue in a large codebase?",
-      "category": "behavioral",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Can you describe a project you worked on where you had to write unit tests and integration tests? What tools did you use?",
-      "category": "behavioral",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Tell me about a time when you received feedback on your code. How did you handle it and what changes did you make?",
-      "category": "behavioral",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Can you describe your experience with code reviews? How do you approach reviewing someone else's code?",
-      "category": "behavioral",
-      "difficulty": "easy"
-    }
+    {"question":"Can you describe a project you worked on that involved collaboration with a frontend developer?","category":"behavioral","difficulty":"easy"},
+    {"question":"Tell me about a time when you had to debug a difficult issue in a complex system. How did you approach it?","category":"behavioral","difficulty":"medium"},
+    {"question":"How do you handle feedback or criticism of your code?","category":"behavioral","difficulty":"easy"},
+    {"question":"Can you describe your experience with code reviews? How do you approach reviewing someone else's code?","category":"behavioral","difficulty":"easy"},
+    {"question":"Tell me about a project you led or contributed to that you're particularly proud of. What was your role, and what did you learn from it?","category":"behavioral","difficulty":"medium"}
   ],
   situational: [
-    {
-      "question": "If you were tasked with designing a new API endpoint, how would you approach it? What factors would you consider?",
-      "category": "situational",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Suppose you are working on a project and you realize that the database schema needs to be changed. How would you handle this situation?",
-      "category": "situational",
-      "difficulty": "easy"
-    },
-    {
-      "question": "If you were tasked with optimizing the performance of a slow API endpoint, how would you approach it? What tools would you use?",
-      "category": "situational",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Can you describe a situation where you had to balance the trade-offs between different design considerations, such as performance, scalability, and maintainability?",
-      "category": "situational",
-      "difficulty": "easy"
-    }
+    {"question":"If you were tasked with designing a scalable API for a high-traffic application, how would you approach it?","category":"situational","difficulty":"medium"},
+    {"question":"Suppose you're working on a project and realize that the database schema needs to be changed. How would you handle this situation?","category":"situational","difficulty":"easy"},
+    {"question":"If a colleague came to you with a problem they're having with their code, how would you help them troubleshoot it?","category":"situational","difficulty":"easy"},
+    {"question":"Imagine you're working on a project with a tight deadline, and you realize that one of the dependencies is causing issues. What would you do?","category":"situational","difficulty":"medium"}
   ],
   cultural: [
-    {
-      "question": "What do you value most in a team and how do you think you can contribute to a positive team culture?",
-      "category": "cultural",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Can you tell me about a time when you had to adapt to a new technology or process? How did you handle it?",
-      "category": "cultural",
-      "difficulty": "easy"
-    },
-    {
-      "question": "How do you prioritize your own professional development and stay up-to-date with industry trends and advancements?",
-      "category": "cultural",
-      "difficulty": "easy"
-    }
+    {"question":"What do you value most in a team or company culture, and why?","category":"cultural","difficulty":"easy"},
+    {"question":"Can you tell me about a time when you had to adapt to a new technology or process? How did you handle it?","category":"cultural","difficulty":"easy"},
+    {"question":"How do you prioritize your own professional development and continuous learning?","category":"cultural","difficulty":"easy"},
+    {"question":"What do you think are the most important qualities for a software engineer to have, and why?","category":"cultural","difficulty":"easy"}
   ]
 };
 

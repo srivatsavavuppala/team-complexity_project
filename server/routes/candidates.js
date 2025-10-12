@@ -321,7 +321,7 @@ router.post('/:candidateId/send-assessment', authenticateToken, async (req, res)
     }
 
     // Generate assessment link
-    const assessmentLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/Assess/${assessmentId}`;
+    const assessmentLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/Assess/${candidateId}`;
 
     // Generate beautiful email HTML
     const emailHtml = generateAssessmentEmail({

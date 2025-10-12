@@ -5,7 +5,7 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, './database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // Replace with the assessment ID you want to update
-const ASSESSMENT_ID = '3dc3bb6b-8943-4a72-b298-21e427fbfc06';
+const ASSESSMENT_ID = '808263e0-83e9-4a2c-8e43-9d4a7572346b';
 // Replace with the status you want to set
 const NEW_STATUS = 'completed';
 
