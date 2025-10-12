@@ -66,22 +66,6 @@ const Assess = () => {
             category: item.category
           }));
         }
-        // Fallback dummy data for testing
-        // data = {
-        //   technical: [
-        //     { question: "What is your experience with Python, and how have you used it in previous projects?", category: "technical" },
-        //     { question: "How do you handle errors and exceptions in Python, and can you give an example?", category: "technical" },
-        //   ],
-        //   behavioral: [
-        //     { question: "Tell me about a time when you had to troubleshoot a difficult issue in your code. How did you go about resolving it?", category: "behavioral" },
-        //   ],
-        //   situational: [
-        //     { question: "Imagine you're working on a Streamlit app, and you notice that the performance is slow due to a large dataset. What steps would you take to optimize the app's performance?", category: "situational" },
-        //   ],
-        //   cultural: [
-        //     { question: "What do you think are the most important values for a development team to have, and how do you embody those values in your own work?", category: "cultural" },
-        //   ]
-        // };
         setQuestions(data);
         setAudioURLs(Array(Object.values(data).flat().length).fill(null));
         // setTranscripts(Array(Object.values(data).flat().length).fill(''));
@@ -221,57 +205,18 @@ const Assess = () => {
     }
   };
 
-  // 💾 Submit all data
-//   const handleSubmit = async () => {
-//     const data = {
-//       userId,
-//       audioURLs,
-//       transcripts
-//     };
-//     console.log('Submitting assessment data:', data);
-
-//     try {
-//       const response = await axios.post('/api/submit/submit-assessment', data);
-//       console.log('Submission success:', response.data);
-//       alert('Assessment submitted successfully!');
-//     } catch (error) {
-//       console.error('Error submitting:', error);
-//     }
-//   };
 const handleSubmit = async () => {
-  // Convert questions & transcripts into formatted string
-  // let formattedAnswers = "";
   setLoading(true);
-    console.log('transcrripts: ', transcripts)
-//   Object.keys(questions).forEach((section) => {
-//     formattedAnswers += `${section.toUpperCase()}\n`;
-//     questions[section].forEach((q, index) => {
-//       const answer = transcripts[index] || "No answer recorded.";
-//       formattedAnswers += `Question: ${q.question}\nAnswer: ${answer}\n\n`;
-//     });
-//   });
-
-// Object.keys(questions).forEach((section, sectionIndex) => {
-//     formattedAnswers += `${section.toUpperCase()}\n`;
-//     questions[section].forEach((q, questionIndex) => {
-//       const transcriptKey = `${sectionIndex}-${questionIndex}`;
-//       const answer = transcripts[transcriptKey] || "No answer recorded.";
-//       formattedAnswers += `Question: ${q.question}\nAnswer: ${answer}\n\n`;
-//     });
-//   });
 
   const formattedAnswers = {};
 
   Object.keys(questions).forEach((section, sectionIndex) => {
-    // Create an array for this section
     formattedAnswers[section] = [];
 
-    // Loop through each question in that section
     questions[section].forEach((q, questionIndex) => {
       const transcriptKey = `${sectionIndex}-${questionIndex}`;
       const answer = transcripts[transcriptKey] || "No answer recorded.";
       
-      // Push only the answer string into the array
       formattedAnswers[section].push(answer);
     });
   });
@@ -280,14 +225,13 @@ const handleSubmit = async () => {
 
   const data = {
     userId: userId,
-    formattedAnswers, // new formatted text
+    formattedAnswers, 
   };
 
   console.log('Submitting formatted data:\n', JSON.stringify(formattedAnswers));
 
   try {
     const response = await axios.post('/api/submit/submit-assessment', data);
-    console.log('Result:', response.data);
     setLoading(false);
 
     document.body.innerHTML = completionPage;
@@ -307,13 +251,17 @@ const handleSubmit = async () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       style={{
+        height: '70vh',
+        width: '90vw',
         display: 'flex',
-        justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh'
+        justifyContent: 'center',
+        borderRadius: '40px',
+        background: 'linear-gradient(135deg, #f0f4f8, #e8f5e9)',
+        padding: '2rem'
       }}
     >
-      <Card sx={{ width: 500, p: 3, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <Card sx={{ width: { xs: '90%', sm: 500 }, p: 3, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={`${sectionIndex}-${questionIndex}`}
