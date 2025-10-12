@@ -117,6 +117,120 @@ class GroqService {
     }
   }
 
+  async analyzeAssessmentResponses(questions, responses) {
+    try {
+      const prompt = `You are an expert HR analyst. Analyze the following interview assessment responses and provide detailed feedback.
+  
+  QUESTIONS AND RESPONSES:
+  ${JSON.stringify({ questions, responses }, null, 2)}
+  
+  Please provide a comprehensive analysis in the following JSON format:
+  {
+    "overallScore": <number 0-100>,
+    "overallFeedback": "<detailed overall assessment>",
+    "sectionAnalysis": {
+      "technical": {
+        "score": <number 0-100>,
+        "feedback": "<detailed feedback>",
+        "strengths": ["<strength 1>", "<strength 2>"],
+        "weaknesses": ["<weakness 1>", "<weakness 2>"],
+        "responses": [
+          {
+            "question": "<question text>",
+            "answer": "<answer text>",
+            "score": <number 0-10>,
+            "feedback": "<specific feedback for this answer>"
+          }
+        ]
+      },
+      "behavioral": {
+        "score": <number 0-100>,
+        "feedback": "<detailed feedback>",
+        "strengths": ["<strength 1>", "<strength 2>"],
+        "weaknesses": ["<weakness 1>", "<weakness 2>"],
+        "responses": [
+          {
+            "question": "<question text>",
+            "answer": "<answer text>",
+            "score": <number 0-10>,
+            "feedback": "<specific feedback>"
+          }
+        ]
+      },
+      "situational": {
+        "score": <number 0-100>,
+        "feedback": "<detailed feedback>",
+        "strengths": ["<strength 1>", "<strength 2>"],
+        "weaknesses": ["<weakness 1>", "<weakness 2>"],
+        "responses": [
+          {
+            "question": "<question text>",
+            "answer": "<answer text>",
+            "score": <number 0-10>,
+            "feedback": "<specific feedback>"
+          }
+        ]
+      },
+      "cultural": {
+        "score": <number 0-100>,
+        "feedback": "<detailed feedback>",
+        "strengths": ["<strength 1>", "<strength 2>"],
+        "weaknesses": ["<weakness 1>", "<weakness 2>"],
+        "responses": [
+          {
+            "question": "<question text>",
+            "answer": "<answer text>",
+            "score": <number 0-10>,
+            "feedback": "<specific feedback>"
+          }
+        ]
+      }
+    },
+    "recommendation": "<Schedule an Interview|REJECT>",
+    "recommendationReason": "<detailed explanation of recommendation>",
+    "keyTakeaways": ["<takeaway 1>", "<takeaway 2>", "<takeaway 3>"]
+  }
+  
+  Evaluate each response based on:
+  - Relevance and completeness
+  - Technical accuracy (for technical questions)
+  - Communication clarity
+  - Problem-solving approach
+  - Cultural fit alignment
+  
+  Provide constructive feedback and actionable insights.`;
+  
+      const completion = await this.client.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert HR analyst specializing in interview assessment and candidate evaluation. Provide detailed, constructive feedback in valid JSON format only.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 8000,
+        response_format: { type: 'json_object' }
+      });
+  
+      const analysisText = completion.choices[0]?.message?.content;
+      if (!analysisText) {
+        throw new Error('No analysis generated');
+      }
+
+      const analysis = JSON.parse(analysisText);
+      
+      return analysis;
+    } catch (error) {
+      console.error('Assessment analysis error:', error);
+      throw new Error(`Failed to analyze assessment: ${error.message}`);
+    }
+  }
+
   async analyzeInterviewResponse(question, answer, jobContext) {
     try {
       const prompt = `

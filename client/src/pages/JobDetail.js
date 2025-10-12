@@ -23,6 +23,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  CircularProgress,
+  LinearProgress,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -31,6 +33,11 @@ import {
   Work as WorkIcon,
   Person as PersonIcon,
   Send as SendIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as CheckCircleIcon,
+  TrendingUp as TrendingUpIcon,
+  Visibility as VisibilityIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
@@ -53,7 +60,7 @@ const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGe
         candidateSkills: candidateSkills.split(',').map(s => s.trim()).filter(Boolean),
       });
       setQuestions(response.data.questions);
-      onQuestionsGenerated?.(response.data.questions); // pass up to parent
+      onQuestionsGenerated?.(response.data.questions);
       toast.success('Interview questions generated successfully!');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to generate questions');
@@ -204,15 +211,261 @@ const GenerateQuestionsDialog = ({ open, onClose, jobId, jobTitle, onQuestionsGe
   );
 };
 
+const AnalysisDialog = ({ open, onClose, candidate, analysis, loading }) => {
+  const navigate = useNavigate();
+
+  // Validate analysis structure
+  const isValidAnalysis = analysis && 
+    analysis.sectionAnalysis && 
+    analysis.overallScore !== undefined;
+
+  const renderSectionAnalysis = (section, title, color) => {
+    if (!section) return null;
+
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color }}>
+          {title}
+        </Typography>
+        
+        {/* Section Score */}
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">Score</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{section.score}/100</Typography>
+          </Box>
+          <LinearProgress 
+            variant="determinate" 
+            value={section.score} 
+            sx={{ 
+              height: 8, 
+              borderRadius: 4,
+              backgroundColor: 'rgba(0,0,0,0.1)',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: section.score >= 70 ? 'success.main' : section.score >= 50 ? 'warning.main' : 'error.main'
+              }
+            }}
+          />
+        </Box>
+
+        {/* Feedback */}
+        {section.feedback && (
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            {section.feedback}
+          </Typography>
+        )}
+
+        {/* Strengths */}
+        {section.strengths && section.strengths.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'success.main' }}>
+              Strengths
+            </Typography>
+            <List dense>
+              {section.strengths.map((strength, idx) => (
+                <ListItem key={idx} sx={{ py: 0.5 }}>
+                  <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main', mr: 1 }} />
+                  <ListItemText 
+                    primary={strength}
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Weaknesses */}
+        {section.weaknesses && section.weaknesses.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'warning.main' }}>
+              Areas for Improvement
+            </Typography>
+            <List dense>
+              {section.weaknesses.map((weakness, idx) => (
+                <ListItem key={idx} sx={{ py: 0.5 }}>
+                  <WarningIcon sx={{ fontSize: 16, color: 'warning.main', mr: 1 }} />
+                  <ListItemText 
+                    primary={weakness}
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Individual Responses */}
+        {section.responses && section.responses.length > 0 && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Detailed Response Analysis
+            </Typography>
+            {section.responses.map((resp, idx) => (
+              <Card key={idx} variant="outlined" sx={{ mb: 2, p: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Q: {resp.question}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+                  A: {resp.answer}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    Score: {resp.score}/10
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={resp.score * 10} 
+                    sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {resp.feedback}
+                </Typography>
+              </Card>
+            ))}
+          </Box>
+        )}
+
+        <Divider sx={{ mt: 3 }} />
+      </Box>
+    );
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PsychologyIcon color="secondary" />
+          <Typography variant="h6">
+            AI Assessment Analysis - {candidate?.name}
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers sx={{ maxHeight: '70vh' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+            <CircularProgress size={48} />
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              Generating AI analysis...
+            </Typography>
+          </Box>
+        ) : !isValidAnalysis ? (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              No valid analysis available for this assessment.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {analysis ? 'The analysis data structure is invalid. Please regenerate the analysis.' : 'Click "Create Analysis" to generate a new assessment report.'}
+            </Typography>
+          </Alert>
+        ) : analysis ? (
+          <Box sx={{ mt: 2 }}>
+            {/* Overall Score */}
+            {analysis.overallScore !== undefined && (
+              <Box sx={{ mb: 4, p: 3, bgcolor: 'primary.light', borderRadius: 2 }}>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                  Overall Score: {analysis.overallScore}/100
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={analysis.overallScore} 
+                  sx={{ 
+                    height: 12, 
+                    borderRadius: 6,
+                    mb: 2,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: 'white'
+                    }
+                  }}
+                />
+                {analysis.overallFeedback && (
+                  <Typography variant="body1">
+                    {analysis.overallFeedback}
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Section Analysis */}
+            {analysis.sectionAnalysis && (
+              <>
+                {renderSectionAnalysis(analysis.sectionAnalysis.technical, '💻 Technical Assessment', 'info.main')}
+                {renderSectionAnalysis(analysis.sectionAnalysis.behavioral, '🤝 Behavioral Assessment', 'secondary.main')}
+                {renderSectionAnalysis(analysis.sectionAnalysis.situational, '🎯 Situational Assessment', 'warning.main')}
+                {renderSectionAnalysis(analysis.sectionAnalysis.cultural, '🏢 Cultural Fit Assessment', 'success.main')}
+              </>
+            )}
+
+            {/* Recommendation */}
+            {analysis.recommendation && (
+              <Box sx={{ 
+                mt: 3, 
+                p: 3, 
+                bgcolor: analysis.recommendation === 'HIRE' ? 'success.light' : 
+                         analysis.recommendation === 'CONSIDER' ? 'warning.light' : 'error.light',
+                borderRadius: 2 
+              }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Final Recommendation: {analysis.recommendation}
+                </Typography>
+                {analysis.recommendationReason && (
+                  <Typography variant="body1">
+                    {analysis.recommendationReason}
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Key Takeaways */}
+            {analysis.keyTakeaways && analysis.keyTakeaways.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Key Takeaways
+                </Typography>
+                <List>
+                  {analysis.keyTakeaways.map((takeaway, idx) => (
+                    <ListItem key={idx}>
+                      <ListItemText 
+                        primary={`${idx + 1}. ${takeaway}`}
+                        primaryTypographyProps={{ variant: 'body1' }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Alert severity="info">No analysis available</Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+        {analysis && (
+          <Button
+            onClick={() => {
+              navigate(`/candidates/${candidate?.candidate_id}`);
+            }}
+            variant="contained"
+          >
+            View Candidate Profile
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const SendAssessmentDialog = ({ open, onClose, candidate, job, questions, onSent }) => {
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
     setSending(true);
     try {
-      // Send to your server: candidate endpoint should send the email containing the assessment link & questions
       await axios.post(`/api/candidates/${candidate.candidate_id}/send-assessment`, {
-        jobId: job.id || job.job_id || job._id || job.id,
+        jobId: job.id || job.job_id || job._id,
         questions,
       });
       toast.success(`Assessment sent to ${candidate.name}`);
@@ -237,7 +490,6 @@ const SendAssessmentDialog = ({ open, onClose, candidate, job, questions, onSent
           <Typography variant="body2">No questions available.</Typography>
         ) : (
           <Box>
-            {/* Show a concise preview of the questions */}
             {questions.technical && (
               <>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
@@ -317,21 +569,57 @@ const JobDetail = () => {
   const navigate = useNavigate();
   const [questionsDialogOpen, setQuestionsDialogOpen] = useState(false);
   const [lastGeneratedQuestions, setLastGeneratedQuestions] = useState(null);
-
-  // For sending confirmation
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [sendingAutoGenerate, setSendingAutoGenerate] = useState(false);
+  const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
+  const [generatedAnalysis, setGeneratedAnalysis] = useState(null);
+  const [generatingAnalysis, setGeneratingAnalysis] = useState(null);
+  const [candidateAnalyses, setCandidateAnalyses] = useState({}); // Store analyses by candidate ID
 
   const { data: job, isLoading: jobLoading, error: jobError } = useQuery(
     ['job', id],
     () => axios.get(`/api/jobs/${id}`).then(res => res.data.job)
   );
 
-  const { data: matches, isLoading: matchesLoading } = useQuery(
+  const { data: matches, isLoading: matchesLoading, refetch: refetchMatches } = useQuery(
     ['job-matches', id],
     () => axios.get(`/api/jobs/${id}/matches`).then(res => res.data.matches),
-    { enabled: !!id }
+    { 
+      enabled: !!id,
+      refetchInterval: 30000,
+      refetchIntervalInBackground: false,
+      onSuccess: async (matchesData) => {
+        // Load existing analyses from database for completed assessments
+        if (matchesData && matchesData.length > 0) {
+          const analyses = {};
+          for (const match of matchesData) {
+            if (match.assessment_status === 'completed') {
+              try {
+                const response = await axios.get(`/api/candidates/${match.candidate_id}/analysis/${id}`);
+                if (response.data.success && response.data.analysis) {
+                  // Validate the analysis structure before storing
+                  const analysis = response.data.analysis;
+                  if (analysis.sectionAnalysis && analysis.overallScore !== undefined) {
+                    analyses[match.candidate_id] = analysis;
+                  } else {
+                    console.log('Invalid analysis structure for candidate:', match.candidate_id);
+                  }
+                }
+              } catch (err) {
+                // Analysis doesn't exist yet or is invalid, skip
+                if (err.response?.status !== 404) {
+                  console.error('Error loading analysis:', err);
+                }
+              }
+            }
+          }
+          if (Object.keys(analyses).length > 0) {
+            setCandidateAnalyses(analyses);
+          }
+        }
+      }
+    }
   );
 
   if (jobLoading) {
@@ -347,18 +635,16 @@ const JobDetail = () => {
   }
 
   const openSendDialogFor = async (candidate) => {
-    // If we already have generated questions, open preview dialog
     if (lastGeneratedQuestions) {
       setSelectedCandidate(candidate);
       setSendDialogOpen(true);
       return;
     }
 
-    // Otherwise auto-generate a set (medium, no skills) then open preview
     setSendingAutoGenerate(true);
     try {
       const resp = await axios.post(`/api/jobs/${id}/generate-questions`, {
-        difficulty: 'medium',
+        difficulty: 'easy',
         candidateSkills: [],
       });
       const generated = resp.data.questions;
@@ -371,6 +657,54 @@ const JobDetail = () => {
     } finally {
       setSendingAutoGenerate(false);
     }
+  };
+
+  const handleGenerateOrViewAnalysis = async (candidate) => {
+    // Check if analysis already exists for this candidate
+    if (candidateAnalyses[candidate.candidate_id]) {
+      // Show existing analysis
+      setSelectedCandidate(candidate);
+      setGeneratedAnalysis(candidateAnalyses[candidate.candidate_id]);
+      setAnalysisDialogOpen(true);
+      return;
+    }
+
+    // Generate new analysis
+    setSelectedCandidate(candidate);
+    setGeneratingAnalysis(candidate.candidate_id);
+    setAnalysisDialogOpen(true);
+    setGeneratedAnalysis(null);
+    
+    try {
+      const response = await axios.post(`/api/candidates/${candidate.candidate_id}/generate-analysis`, {
+        jobId: id
+      });
+      
+      const analysis = response.data.analysis;
+      setGeneratedAnalysis(analysis);
+      
+      // Store analysis in state
+      setCandidateAnalyses(prev => ({
+        ...prev,
+        [candidate.candidate_id]: analysis
+      }));
+      
+      if (response.data.cached) {
+        toast.success('Analysis loaded from database!');
+      } else {
+        toast.success('Analysis generated and saved successfully!');
+      }
+    } catch (err) {
+      console.error('Analysis error:', err);
+      toast.error(err.response?.data?.error || 'Failed to generate analysis');
+      setAnalysisDialogOpen(false);
+    } finally {
+      setGeneratingAnalysis(null);
+    }
+  };
+
+  const hasAnalysis = (candidateId) => {
+    return !!candidateAnalyses[candidateId];
   };
 
   return (
@@ -397,7 +731,6 @@ const JobDetail = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Job Information */}
         <Grid item xs={12} md={8}>
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -462,7 +795,6 @@ const JobDetail = () => {
           </motion.div>
         </Grid>
 
-        {/* Job Stats */}
         <Grid item xs={12} md={4}>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -506,7 +838,6 @@ const JobDetail = () => {
           </motion.div>
         </Grid>
 
-        {/* Matched Candidates */}
         <Grid item xs={12}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -515,9 +846,29 @@ const JobDetail = () => {
           >
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Matched Candidates
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Matched Candidates
+                  </Typography>
+                  <Tooltip title="Refresh to check for assessment status updates" arrow>
+                    <IconButton 
+                      onClick={() => {
+                        refetchMatches();
+                        toast.success('Refreshing candidate list...');
+                      }} 
+                      size="small"
+                      color="primary"
+                      sx={{ 
+                        '&:hover': { 
+                          transform: 'rotate(180deg)',
+                          transition: 'transform 0.3s ease'
+                        }
+                      }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
 
                 {matchesLoading ? (
                   <Box sx={{ textAlign: 'center', py: 3 }}>
@@ -541,29 +892,81 @@ const JobDetail = () => {
                           borderRadius: 1,
                           '&:hover': { bgcolor: 'action.hover' },
                         }}
-                        // navigate when clicking on the body; use button area for send
                         onClick={(e) => {
-                          // avoid navigating when Send button is clicked
                           if ((e.target.closest && e.target.closest('button')) || e.target.tagName === 'BUTTON') return;
                           navigate(`/candidates/${match.candidate_id}`);
                         }}
                         secondaryAction={
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Send Assessment Link">
-                              <span>
-                                <IconButton
-                                  edge="end"
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            {match.assessment_status && (
+                              <Tooltip 
+                                title={`Assessment Status: ${match.assessment_status === 'completed' ? 'Completed' : 'Pending'}`}
+                                arrow
+                                placement="top"
+                              >
+                                <Chip
+                                  label={match.assessment_status.charAt(0).toUpperCase() + match.assessment_status.slice(1).toLowerCase()}
                                   size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openSendDialogFor(match);
-                                  }}
-                                  disabled={sendingAutoGenerate}
-                                >
-                                  <SendIcon />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
+                                  color={match.assessment_status === 'completed' ? 'success' : 'warning'}
+                                  sx={{ minWidth: 90, fontWeight: 600 }}
+                                />
+                              </Tooltip>
+                            )}
+                            
+                            {match.assessment_status === 'completed' ? (
+                              <Tooltip 
+                                title={hasAnalysis(match.candidate_id) ? 'View Analysis' : 'Generate AI Analysis'}
+                                arrow
+                                placement="top"
+                              >
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={hasAnalysis(match.candidate_id) ? 'outlined' : 'contained'}
+                                    color="secondary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleGenerateOrViewAnalysis(match);
+                                    }}
+                                    disabled={generatingAnalysis === match.candidate_id}
+                                    startIcon={hasAnalysis(match.candidate_id) ? <VisibilityIcon sx={{ fontSize: 16 }} /> : <PsychologyIcon sx={{ fontSize: 16 }} />}
+                                    sx={{ 
+                                      minWidth: 130,
+                                      textTransform: 'none',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {generatingAnalysis === match.candidate_id ? 'Analyzing...' : hasAnalysis(match.candidate_id) ? 'View Analysis' : 'Create Analysis'}
+                                  </Button>
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip 
+                                title={match.assessment_status ? 'Resend Assessment Link' : 'Send Assessment Link'}
+                                arrow
+                                placement="top"
+                              >
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={match.assessment_status ? 'outlined' : 'contained'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openSendDialogFor(match);
+                                    }}
+                                    disabled={sendingAutoGenerate}
+                                    startIcon={<SendIcon sx={{ fontSize: 16 }} />}
+                                    sx={{ 
+                                      minWidth: 100,
+                                      textTransform: 'none',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {match.assessment_status ? 'Resend' : 'Send'}
+                                  </Button>
+                                </span>
+                              </Tooltip>
+                            )}
                           </Box>
                         }
                       >
@@ -626,8 +1029,20 @@ const JobDetail = () => {
         job={job}
         questions={lastGeneratedQuestions}
         onSent={() => {
-          // optional: track sent state per candidate or refresh matches
+          refetchMatches();
         }}
+      />
+
+      <AnalysisDialog
+        open={analysisDialogOpen}
+        onClose={() => {
+          setAnalysisDialogOpen(false);
+          setSelectedCandidate(null);
+          setGeneratedAnalysis(null);
+        }}
+        candidate={selectedCandidate}
+        analysis={generatedAnalysis}
+        loading={generatingAnalysis !== null}
       />
     </Box>
   );

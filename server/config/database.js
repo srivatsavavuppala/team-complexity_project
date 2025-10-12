@@ -23,6 +23,8 @@ class Database {
         job_id TEXT NOT NULL,
         questions TEXT NOT NULL,
         status TEXT DEFAULT 'pending',
+        assessment_response TEXT,
+        analysis TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         expires_at DATETIME,
         response TEXT,
