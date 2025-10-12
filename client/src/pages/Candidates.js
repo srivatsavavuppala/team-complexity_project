@@ -36,13 +36,28 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const CandidateCard = ({ candidate, onView }) => (
+import {
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+
+const CandidateCard = ({ candidate, onView, onDelete }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer', minWidth: 300 }} onClick={() => onView(candidate.id)}>
+    <Card sx={{ height: '100%', position: 'relative', cursor: 'pointer', minWidth: 300 }} onClick={() => onView(candidate.id)}>
+      
+        <IconButton
+        size="small"
+        sx={{ position: 'absolute', top: 8, right: 8, color: 'error.main' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(candidate);
+        }}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, mr: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
@@ -211,6 +226,17 @@ const Candidates = () => {
     { keepPreviousData: true }
   );
 
+  const onDelete = async (candidate) => {
+    const res = await axios.delete(`/api/candidates/${candidate.id}`);
+    if(res.status === 200){
+      queryClient.invalidateQueries('candidates');
+      toast.success('Job position deleted successfully!');
+    }
+    else
+      toast.error('Failed to delete job position');
+  }
+
+
   const handleSearch = (event) => {
     setSearch(event.target.value);
     setPage(1);
@@ -293,6 +319,7 @@ const Candidates = () => {
                 <CandidateCard
                   candidate={candidate}
                   onView={(id) => navigate(`/candidates/${id}`)}
+                  onDelete={onDelete}
                 />
               </Grid>
             ))}

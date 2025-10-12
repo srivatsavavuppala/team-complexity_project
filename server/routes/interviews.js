@@ -22,6 +22,24 @@ const answerSchema = Joi.object({
   answer: Joi.string().required()
 });
 
+router.delete('/:interviewId', authenticateToken, async (req, res) => {
+  const interviewId = req.params.interviewId;
+
+  db.run('DELETE FROM interviews WHERE id = ?', [interviewId], function (err) {
+    if (err) {
+      console.error('Error deleting interviewId:', err.message);
+      return res.status(500).json({ success: false, error: 'Failed to delete scheduled interview' });
+    }
+
+    // this.changes tells you how many rows were deleted
+    if (this.changes === 0) {
+      return res.status(404).json({ success: false, error: 'interviewId not found' });
+    }
+
+    res.json({ success: true });
+  });
+});
+
 // Schedule interview
 router.post('/', authenticateToken, async (req, res) => {
   try {

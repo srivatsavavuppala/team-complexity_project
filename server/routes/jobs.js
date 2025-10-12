@@ -89,6 +89,24 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.delete('/:jobId', authenticateToken, async (req, res) => {
+  const jobId = req.params.jobId;
+
+  db.run('DELETE FROM job_positions WHERE id = ?', [jobId], function (err) {
+    if (err) {
+      console.error('Error deleting job_positions:', err.message);
+      return res.status(500).json({ success: false, error: 'Failed to delete job_positions' });
+    }
+
+    // this.changes tells you how many rows were deleted
+    if (this.changes === 0) {
+      return res.status(404).json({ success: false, error: 'job_positions not found' });
+    }
+
+    res.json({ success: true });
+  });
+});
+
 // Get all job positions
 router.get('/', authenticateToken, (req, res) => {
   const page = parseInt(req.query.page) || 1;

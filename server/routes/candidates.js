@@ -227,6 +227,24 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
   }
 });
 
+router.delete('/:candidateId', authenticateToken, async (req, res) => {
+  const candidateId = req.params.candidateId;
+
+  db.run('DELETE FROM candidates WHERE id = ?', [candidateId], function (err) {
+    if (err) {
+      console.error('Error deleting candidate:', err.message);
+      return res.status(500).json({ success: false, error: 'Failed to delete candidate' });
+    }
+
+    // this.changes tells you how many rows were deleted
+    if (this.changes === 0) {
+      return res.status(404).json({ success: false, error: 'Candidate not found' });
+    }
+
+    res.json({ success: true });
+  });
+});
+
 // SINGLE CONSOLIDATED SEND ASSESSMENT ENDPOINT
 router.post('/:candidateId/send-assessment', authenticateToken, async (req, res) => {
   try {

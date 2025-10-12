@@ -41,11 +41,17 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+import {
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+
 const schema = yup.object({
   candidateId: yup.string().required('Candidate is required'),
   jobPositionId: yup.string().required('Job position is required'),
   scheduledAt: yup.date().required('Schedule date is required'),
 });
+
+
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -56,13 +62,23 @@ const getStatusColor = (status) => {
   }
 };
 
-const InterviewCard = ({ interview, onView }) => (
+const InterviewCard = ({ interview, onView, onDelete }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => onView(interview.id)}>
+    <Card sx={{ height: '100%',position: 'relative', cursor: 'pointer' }} onClick={() => onView(interview.id)}>
+      <IconButton
+        size="small"
+        sx={{ position: 'absolute', top: 8, right: 8, color: 'error.main' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(interview);
+        }}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
           <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
@@ -256,6 +272,17 @@ const Interviews = () => {
     { keepPreviousData: true }
   );
 
+  const onDelete = async (interview) => {
+    const interviewId = interview.id;
+    const res = await axios.delete(`/api/interviews/${interviewId}`);
+    if(res.status === 200){
+      queryClient.invalidateQueries('interviews');
+      toast.success('Job position deleted successfully!');
+    }
+    else
+      toast.error('Failed to delete job position');
+  }
+
   const handleSearch = (event) => {
     setSearch(event.target.value);
     setPage(1);
@@ -362,6 +389,7 @@ const Interviews = () => {
                 <InterviewCard
                   interview={interview}
                   onView={(id) => navigate(`/interviews/${id}`)}
+                  onDelete={onDelete}
                 />
               </Grid>
             ))}

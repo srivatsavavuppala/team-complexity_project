@@ -35,6 +35,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 
 const schema = yup.object({
   title: yup.string().required('Job title is required'),
@@ -44,13 +47,25 @@ const schema = yup.object({
   experienceRequired: yup.number().min(0, 'Experience must be 0 or greater'),
 });
 
-const JobCard = ({ job, onView }) => (
+
+
+const JobCard = ({ job, onView, onDelete }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer', minWidth: 300 }} onClick={() => onView(job.id)}>
+    <Card sx={{ height: '100%', position: 'relative' ,cursor: 'pointer', minWidth: 300 }} onClick={() => onView(job.id)}>
+       <IconButton
+          size="small"
+          sx={{ position: 'absolute', top: 8, right: 8, color: 'error.main' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(job);
+          }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, minWidth: 450 }}>
           <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
@@ -244,6 +259,17 @@ const Jobs = () => {
     { keepPreviousData: true }
   );
 
+  const onDelete = async (job) => {
+    const jobId = job.id;
+    const res = await axios.delete(`/api/jobs/${jobId}`);
+    if(res.status === 200){
+      queryClient.invalidateQueries('jobs');
+      toast.success('Job position deleted successfully!');
+    }
+    else
+      toast.error('Failed to delete job position');
+  }
+
   const handleSearch = (event) => {
     setSearch(event.target.value);
     setPage(1);
@@ -326,6 +352,7 @@ const Jobs = () => {
                 <JobCard
                   job={job}
                   onView={(id) => navigate(`/jobs/${id}`)}
+                  onDelete={onDelete}
                 />
               </Grid>
             ))}
