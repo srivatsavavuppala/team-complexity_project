@@ -27,6 +27,7 @@ class Database {
         analysis TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         expires_at DATETIME,
+        response TEXT,
         FOREIGN KEY (candidate_id) REFERENCES candidates (id),
         FOREIGN KEY (job_id) REFERENCES job_positions (id)
       )`,
