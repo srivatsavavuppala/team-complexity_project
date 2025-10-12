@@ -146,7 +146,7 @@ const Register = () => {
                 <Psychology fontSize="large" />
               </Avatar>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                AI Recruiter
+                Team Complexity - AI Recruiter
               </Typography>
             </Box>
             <Typography variant="h3" sx={{ fontWeight: 700, mb: 3, lineHeight: 1.2 }}>
@@ -222,7 +222,7 @@ const Register = () => {
                   Create Account
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Join AI Recruiter and transform your hiring
+                  Join Team Complexity - AI Recruiter and transform your hiring
                 </Typography>
               </Box>
 

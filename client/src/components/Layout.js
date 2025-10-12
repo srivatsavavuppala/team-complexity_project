@@ -86,7 +86,7 @@ const Layout = ({ children }) => {
             AI
           </Avatar>
           <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            AI Recruiter
+             AI Recruiter
           </Typography>
         </Box>
       </Toolbar>
