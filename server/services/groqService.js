@@ -69,38 +69,62 @@ class GroqService {
     }
   }
 
-  async generateInterviewQuestions(jobTitle, jobDescription, candidateSkills = [], difficulty = 'medium') {
+  async generateInterviewQuestions(jobTitle, jobDescription, candidateSkills = [], difficulty = 'easy') {
     try {
       const prompt = `
-        Generate interview questions for the following position:
-        
-        Job Title: ${jobTitle}
-        Job Description: ${jobDescription}
-        Candidate Skills: ${candidateSkills.join(', ')}
-        Difficulty Level: ${difficulty}
-        
-        Please generate 10-15 interview questions covering:
-        1. Technical skills (40%)
-        2. Behavioral questions (30%)
-        3. Situational questions (20%)
-        4. Company culture fit (10%)
-        
-        Format your response as JSON:
-        {
-          "technical": [
-            {"question": "...", "category": "technical", "difficulty": "easy|medium|hard"}
-          ],
-          "behavioral": [
-            {"question": "...", "category": "behavioral", "difficulty": "easy|medium|hard"}
-          ],
-          "situational": [
-            {"question": "...", "category": "situational", "difficulty": "easy|medium|hard"}
-          ],
-          "cultural": [
-            {"question": "...", "category": "cultural", "difficulty": "easy|medium|hard"}
-          ]
-        }
-      `;
+You are creating interview questions for a VOICE-RECORDED interview session. The output MUST be valid JSON and nothing else.
+
+Important override: Regardless of the jobDifficulty input, set every question's "difficulty" field to "easy". All questions should be voice-friendly and suitable for short spoken answers.
+
+Context:
+- This interview will be read aloud by an interviewer and recorded as voice responses from the candidate.
+- Questions must be short, clear, and natural to speak (suitable for TTS or an interviewer reading them).
+- Candidate answers will be short-to-medium. Provide guidance for expected answer length (seconds).
+- Include a short "readable" prompt (1 sentence) the interviewer can read exactly.
+- Include a recommended pause (in milliseconds) the interviewer should wait after reading the question to allow the candidate to respond.
+
+Requirements:
+1. Generate between 10 and 15 questions total.
+2. Distribute questions roughly as: Technical 40%, Behavioral 30%, Situational 20%, Cultural 10%.
+3. For each question include:
+   - "question": the full question text (suitable for internal display)
+   - "readable": a concise single-sentence phrasing the interviewer should read aloud (≤ 20 words)
+   - "category": one of "technical", "behavioral", "situational", "cultural"
+   - "difficulty": **must be** "easy" for every question
+   - "expected_answer_duration_seconds": integer (recommended seconds candidate should speak; typical easy ranges 15-60)
+   - "recommended_pause_ms": integer (milliseconds to pause after reading; for easy questions recommend 8000-30000)
+   - "follow_up": an array of up to 2 short follow-up question strings (optional)
+4. Keep each "readable" phrase free of special characters that might confuse TTS.
+5. Make questions appropriate for the provided inputs:
+   - Job Title: ${jobTitle}
+   - Job Description: ${jobDescription}
+   - Candidate Skills: ${candidateSkills.join(', ')}
+   - Overall difficulty preference: ${difficulty} (IGNORE this for per-question difficulty; still include in meta)
+6. Ensure technical questions test core skills listed in Candidate Skills and the Job Description. Prioritize practical, conversational prompts that can be answered aloud.
+7. Avoid numbering inside the question strings (the JSON structure will indicate order).
+8. Output only JSON structured exactly as below.
+
+Desired JSON format:
+{
+  "meta": {
+    "jobTitle": "...",
+    "difficulty": "easy|medium|hard", // keep the original field but per-question fields must be "easy"
+    "total_questions": 12,
+    "notes": "Voice-recording friendly; all questions difficulty='easy'; 'readable' is for interviewer."
+  },
+  "technical": [ ... ],
+  "behavioral": [ ... ],
+  "situational": [ ... ],
+  "cultural": [ ... ]
+}
+
+Final instructions for the model:
+- Do not include any explanatory text outside the JSON.
+- Ensure JSON is valid and parseable.
+- Set every question's "difficulty" property to the string "easy".
+- Make expected_answer_duration_seconds and recommended_pause_ms realistic for spoken easy questions.
+- Keep question wording voice-friendly and concise.
+`;
 
       const completion = await this.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
