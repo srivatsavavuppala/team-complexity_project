@@ -1,291 +1,313 @@
 # AI-Powered Interview & Recruitment Helper
 
-An enterprise-grade recruitment platform powered by AI that streamlines the hiring process with intelligent resume analysis, automated interview question generation, and real-time candidate evaluation.
+An enterprise-grade recruitment platform that streamlines hiring with AI: resume analysis, smart matching, interview workflows, and rich analytics. This monorepo contains a React client and a Node/Express API backed by SQLite and Groq AI.
 
 ## 🚀 Features
 
-### Core Functionality
-- **AI Resume Analysis**: Automatically parse and analyze resumes using Groq AI
-- **Smart Candidate Matching**: AI-powered job-candidate compatibility scoring
-- **Dynamic Interview Questions**: Generate tailored interview questions based on job requirements
-- **Real-time Interview Analysis**: Live analysis of candidate responses during interviews
-- **Comprehensive Dashboard**: Beautiful analytics and insights for HR teams
+- **AI Resume Analysis**: Parse PDFs/DOCX/TXT and extract skills, experience, and insights using Groq
+- **Smart Candidate Matching**: Auto-match candidates to jobs with explainable scores
+- **Dynamic Interview Questions**: Generate role-tailored question sets
+- **Voice-based Candidate Assessment**: Guided voice responses with live transcription UI
+- **Interview Lifecycle**: Schedule, conduct, score, and summarize interviews
+- **Assessment Analysis**: Convert submitted answers to a structured AI report (per section + overall)
+- **Secure AuthN/AuthZ**: JWT-based auth, role support, rate limiting, and hardened headers
+- **Analytics Dashboard**: Stats, trends, pipeline views, and top skills
 
-### AI Capabilities
-- Resume parsing and skill extraction
-- Experience level assessment
-- Candidate-job fit analysis
-- Interview question generation (technical, behavioral, situational, cultural)
-- Real-time answer evaluation and scoring
-- Automated feedback and recommendations
+## 🧱 Repository Structure
 
-### Enterprise Features
-- Role-based access control (Admin, Recruiter, Interviewer)
-- Secure authentication with JWT
-- File upload support (PDF, DOCX, TXT)
-- RESTful API architecture
-- Responsive modern UI
-- Real-time notifications
+```text
+.
+├─ client/                     # React app (CRA / MUI / React Query)
+│  ├─ public/
+│  └─ src/
+│     ├─ components/          # Layout, spinners, shared UI
+│     ├─ contexts/            # Auth context
+│     ├─ pages/               # Dashboard, Candidates, Jobs, Interviews, Assess, etc.
+│     ├─ App.js               # Routing (protected/public)
+│     └─ theme.js
+├─ server/                     # Express API (SQLite)
+│  ├─ config/
+│  │  └─ database.js          # SQLite initialization & schema
+│  ├─ controllers/
+│  │  └─ assessmentController.js  # (alt/legacy) SMTP-driven assessment mailer
+│  ├─ middleware/
+│  │  └─ auth.js              # JWT auth + role authorization
+│  ├─ routes/                 # REST endpoints
+│  │  ├─ auth.js              # /api/auth
+│  │  ├─ candidates.js        # /api/candidates
+│  │  ├─ jobs.js              # /api/jobs
+│  │  ├─ interviews.js        # /api/interviews
+│  │  ├─ dashboard.js         # /api/dashboard
+│  │  ├─ assessments.js       # /api/assessments (alternative sender)
+│  │  └─ assess.js            # /api/submit (assessment fetch/submit)
+│  ├─ services/
+│  │  └─ groqService.js       # Groq prompts for analysis/questions/matching
+│  ├─ utils/
+│  │  ├─ fileParser.js        # PDF/DOCX/TXT -> text, contact, exp years
+│  │  └─ assessmentEmailTemplate.js
+│  ├─ tests/
+│  │  └─ api.test.js          # Health + basic auth tests
+│  └─ index.js                # API bootstrap, health, static serving
+├─ Dockerfile                  # Multi-stage build (client + server)
+├─ docker-compose.yml          # Single service, persistent DB volume
+├─ package.json                # Workspace scripts (dev/build/test)
+├─ README.md                   # You are here
+└─ server/.env.example         # Server-side env template
+```
 
 ## 🛠 Technology Stack
 
-### Backend
-- **Node.js** with Express.js
-- **Groq SDK** for AI processing
-- **SQLite** database with comprehensive schema
-- **JWT** authentication
-- **Multer** for file uploads
-- **PDF/DOCX** parsing capabilities
-
-### Frontend
-- **React 18** with modern hooks
-- **Material-UI (MUI)** for beautiful components
-- **React Query** for data management
-- **React Router** for navigation
-- **Framer Motion** for animations
-- **React Hook Form** with validation
+- **Backend**: Node.js (Express), SQLite3, Multer, Joi, JWT, Helmet, Express Rate Limit
+- **AI**: Groq SDK (LLM prompts for analysis, questions, matching)
+- **Frontend**: React 18, React Router, React Query, MUI, Framer Motion, React Hook Form, Recharts
+- **Email**: Nodemailer (Gmail or generic SMTP)
+- **Container**: Dockerfile (multi-stage), docker-compose
 
 ## 📋 Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Groq API key ([Get one here](https://console.groq.com/))
+- Node.js 18+ (LTS recommended)
+- npm 9+ (or yarn/pnpm if you prefer adapting scripts)
+- Groq API key (`https://console.groq.com`)
 
-## 🚀 Quick Start
+## ⚙️ Configuration
 
-### 1. Clone and Install Dependencies
-
-```bash
-# Install root dependencies
-npm install
-
-# Install all dependencies (server + client)
-npm run install-all
-```
-
-### 2. Environment Setup
-
-Create a `.env` file in the `server` directory:
+Create `server/.env` from the example, then fill values:
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-Edit `server/.env` with your configuration:
+Minimal variables (from `server/.env.example`):
 
 ```env
 PORT=5000
-GROQ_API_KEY=your_groq_api_key_here
-JWT_SECRET=your_jwt_secret_here
 NODE_ENV=development
 DB_PATH=./database.sqlite
+GROQ_API_KEY=your_groq_api_key_here
+JWT_SECRET=your_jwt_secret_here
 ```
 
-### 3. Start the Application
+Additional variables used in the codebase:
+
+- General
+  - `FRONTEND_URL` (optional): e.g. `http://localhost:3000` for links in assessment emails
+  - `COMPANY_NAME` (optional): used in outbound email branding
+- Email (choose ONE approach)
+  - Gmail (used by `candidates.js`):
+    - `GMAIL_USER`: Gmail address
+    - `GMAIL_PASS`: App Password (recommended) or OAuth token
+  - SMTP (used by `controllers/assessmentController.js`):
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+
+Notes:
+- The route `/api/candidates/:candidateId/send-assessment` uses Gmail config by default.
+- The alternate route `/api/assessments/send` uses the SMTP-based controller and has legacy/experimental data access; prefer the first route.
+
+## ▶️ Local Development
+
+Install dependencies for root, server, and client:
 
 ```bash
-# Start both server and client in development mode
+# From repository root
+npm install
+npm run install-all
+```
+
+Run both apps together (concurrently):
+
+```bash
 npm run dev
 ```
 
-The application will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **Health Check**: http://localhost:5000/api/health
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:5000`
+- Health check: `http://localhost:5000/api/health`
 
-### 4. Create Your First Account
+Client dev notes:
+- The client uses CRA with a proxy to the API (`client/package.json -> proxy: http://localhost:5000`).
+- Login/register from `/login` or `/register`; protected routes require a valid JWT.
 
-1. Navigate to http://localhost:3000
-2. Click "Sign up here" to create an account
-3. Choose your role (Admin, Recruiter, or Interviewer)
-4. Start using the platform!
+## 📦 Useful Scripts
 
-## 📖 API Documentation
+Root `package.json`:
 
-### Authentication Endpoints
-- `POST /api/auth/register` - Create new user account
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user info
+- `npm run dev` — run API and client together (concurrently)
+- `npm run server` — run server only (dev)
+- `npm run client` — run client only (dev)
+- `npm run build` — build client for production
+- `npm run install-all` — install root + server + client deps
+- `npm test` — run server tests then client tests
 
-### Candidates Endpoints
-- `GET /api/candidates` - List all candidates
-- `POST /api/candidates/upload-resume` - Upload and analyze resume
-- `GET /api/candidates/:id` - Get candidate details
-- `PUT /api/candidates/:id` - Update candidate
-- `DELETE /api/candidates/:id` - Delete candidate
-- `POST /api/candidates/:id/match-job/:jobId` - Match candidate to job
+Server `package.json`:
+- `npm run dev` — nodemon `index.js`
+- `npm start` — node `index.js`
+- `npm test` — jest tests
 
-### Jobs Endpoints
-- `GET /api/jobs` - List all job positions
-- `POST /api/jobs` - Create new job position
-- `GET /api/jobs/:id` - Get job details
-- `PUT /api/jobs/:id` - Update job position
-- `DELETE /api/jobs/:id` - Delete job position
-- `POST /api/jobs/:id/generate-questions` - Generate interview questions
+Client `package.json`:
+- `npm start` — CRA dev server
+- `npm build` — CRA build
+- `npm test` — CRA tests
 
-### Interviews Endpoints
-- `GET /api/interviews` - List all interviews
-- `POST /api/interviews` - Schedule new interview
-- `GET /api/interviews/:id` - Get interview details
-- `POST /api/interviews/:id/start` - Start interview
-- `POST /api/interviews/:id/answer` - Submit answer for analysis
-- `POST /api/interviews/:id/complete` - Complete interview
+## 🗂 Database Schema (SQLite)
 
-### Dashboard Endpoints
-- `GET /api/dashboard/stats` - Get dashboard statistics
-- `GET /api/dashboard/activity` - Get recent activity
-- `GET /api/dashboard/trends/interviews` - Get interview trends
-- `GET /api/dashboard/pipeline` - Get candidate pipeline data
+Tables created on boot (`server/config/database.js`):
 
-## 🎯 Usage Guide
+- `users(id, email, password, name, role, created_at)`
+- `candidates(id, name, email, phone, resume_text, resume_analysis, skills, experience_years, created_at, updated_at)`
+- `job_positions(id, title, description, requirements, skills_required, experience_required, created_by, created_at)`
+- `interviews(id, candidate_id, job_position_id, interviewer_id, questions, answers, ai_analysis, score, status, scheduled_at, completed_at, created_at)`
+- `candidate_matches(id, candidate_id, job_position_id, match_score, ai_reasoning, created_at)`
+- `assessments(id, candidate_id, job_id, questions, status, assessment_response, analysis, created_at, expires_at, response)`
+- `assessment_response(id, response)` (stores submitted responses in legacy path)
 
-### For Recruiters
+Notes:
+- JSON fields are stored as strings (`questions`, `resume_analysis`, `skills`, `answers`, `ai_analysis`, etc.).
+- The assessment flow also writes `assessments.assessment_response` directly.
 
-1. **Upload Candidate Resumes**
-   - Go to Candidates → Upload Resume
-   - Drag & drop or select PDF/DOCX/TXT files
-   - AI automatically analyzes and scores the resume
+## 🔐 Security & Policies
 
-2. **Create Job Positions**
-   - Navigate to Job Positions → Create Job
-   - Fill in job details, requirements, and skills
-   - System will help match candidates automatically
+- CORS: Dev allows `http://localhost:3000`, production expects your domain
+- Helmet: Sensible security headers enabled
+- Rate limiting: 100 req / 15 mins on `/api/*`
+- JWT Auth: Bearer token required for protected endpoints; set `JWT_SECRET`
 
-3. **Match Candidates to Jobs**
-   - View candidate profiles
-   - Click "Match to Job" to see AI compatibility analysis
-   - Review match scores and AI reasoning
+## 📡 API Reference (High level)
 
-### For Interviewers
+All routes are prefixed with `/api`. Most endpoints require `Authorization: Bearer <token>` headers after login.
 
-1. **Schedule Interviews**
-   - Go to Interviews → Schedule Interview
-   - Select candidate and job position
-   - Set date and time
+### Auth
+- `POST /api/auth/register` → Create account
+- `POST /api/auth/login` → Authenticate and get JWT
+- `GET /api/auth/me` → Current user (auth)
 
-2. **Conduct AI-Powered Interviews**
-   - Generate tailored questions using AI
-   - Start the interview and ask questions
-   - Submit candidate answers for real-time AI analysis
-   - Get instant feedback and scoring
+### Candidates
+- `GET /api/candidates` → Paginated list with search (auth)
+- `POST /api/candidates/upload-resume` → Upload PDF/DOCX/TXT; multipart field `resume` (auth)
+- `GET /api/candidates/:id` → Candidate detail (auth)
+- `PUT /api/candidates/:id` → Update profile (auth)
+- `DELETE /api/candidates/:id` → Delete (auth)
+- `GET /api/candidates/:id/matches` → Job matches (auth)
+- `POST /api/candidates/:id/match-job/:jobId` → Force-match a candidate to a job (auth)
 
-3. **Complete Interviews**
-   - Provide final score and feedback
-   - Review comprehensive AI analysis
-   - Export interview reports
+### Assessments
+- `POST /api/candidates/:candidateId/send-assessment` → Send email with assessment link (auth)
+- `GET /api/candidates/assessment/:assessmentId` → Fetch assessment (public to app)
+- `POST /api/candidates/assessment/:assessmentId/submit` → Submit responses (public to app)
+- `POST /api/candidates/:candidateId/generate-analysis` → Generate & persist AI analysis for completed assessment (auth)
+- `GET /api/candidates/:candidateId/analysis/:jobId` → Retrieve stored analysis (auth)
+- `POST /api/submit/get-ai-assessment` → Fetch questions for a candidate (auth; used by client Assess page)
+- `POST /api/submit/submit-assessment` → Persist formatted answers (auth)
+- `POST /api/assessments/send` → Alternate SMTP-based sender (legacy/experimental)
 
-### For Admins
+### Jobs
+- `GET /api/jobs` → Paginated list (auth)
+- `POST /api/jobs` → Create job (auth)
+- `GET /api/jobs/:id` → Job detail (auth)
+- `PUT /api/jobs/:id` → Update (auth, only creator)
+- `DELETE /api/jobs/:id` → Delete (auth, only creator)
+- `POST /api/jobs/:id/generate-questions` → AI-generate question set (auth)
+- `GET /api/jobs/:id/matches` → Candidates matched to job (auth)
 
-1. **Monitor Dashboard**
-   - View recruitment metrics and trends
-   - Track interview success rates
-   - Analyze candidate pipeline
+### Interviews
+- `POST /api/interviews` → Schedule interview (auth)
+- `GET /api/interviews` → List interviews (auth)
+- `GET /api/interviews/:id` → Interview detail (auth)
+- `POST /api/interviews/from-assessment` → Schedule interview for assessed candidate (auth)
+- `POST /api/interviews/:id/start` → Mark in-progress (auth)
+- `POST /api/interviews/:id/answer` → Submit one answer, receive AI analysis (auth)
+- `POST /api/interviews/:id/complete` → Finalize interview and compute summary (auth)
+- `PUT /api/interviews/:id` → Update (auth)
+- `DELETE /api/interviews/:id` → Delete (auth)
 
-2. **Manage Users**
-   - Create accounts for team members
-   - Assign appropriate roles
-   - Monitor system usage
+### Dashboard
+- `GET /api/dashboard/stats` → Aggregate counts and metrics (auth)
+- `GET /api/dashboard/activity` → Recent activity feed (auth)
+- `GET /api/dashboard/trends/interviews?days=30` → Time series (auth)
+- `GET /api/dashboard/pipeline` → Experience bands and success rates (auth)
 
-## 🔧 Configuration
+### Health
+- `GET /api/health` → `{ status: "OK" }`
 
-### Groq AI Configuration
-The system uses Groq's fast inference API for AI processing. Configure your API key in the environment variables:
-
-```env
-GROQ_API_KEY=gsk_your_api_key_here
-```
-
-### Database Configuration
-SQLite is used by default for simplicity. The database file is created automatically:
-
-```env
-DB_PATH=./database.sqlite
-```
-
-### Security Configuration
-Set a strong JWT secret for token encryption:
-
-```env
-JWT_SECRET=your_very_secure_random_string_here
-```
-
-## 🚀 Production Deployment
-
-### Build for Production
+### Example: Login + Authenticated Request
 
 ```bash
-# Build the client
-npm run build
+# Login
+curl -s -X POST http://localhost:5000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","password":"password123"}'
 
-# Set environment to production
-export NODE_ENV=production
+# Use the token for an authenticated call
+TOKEN="<paste JWT here>"
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/candidates
 ```
 
-### Environment Variables for Production
+### Example: Resume Upload (multipart)
 
-```env
-NODE_ENV=production
-PORT=5000
-GROQ_API_KEY=your_production_groq_key
-JWT_SECRET=your_production_jwt_secret
-DB_PATH=/path/to/production/database.sqlite
+```bash
+curl -X POST http://localhost:5000/api/candidates/upload-resume \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "resume=@/path/to/resume.pdf" \
+  -F "name=Jane Doe" -F "email=jane@example.com"
 ```
 
-### Docker Deployment (Optional)
+## 🧭 Assessment Workflow
 
-Create a `Dockerfile`:
+1. Recruiter creates a job (`/api/jobs`) and optionally generates questions (`/api/jobs/:id/generate-questions`).
+2. Recruiter sends an assessment to a matched candidate (`/api/candidates/:candidateId/send-assessment`).
+3. Candidate opens the link (frontend route `Assess/:userId`) and records voice answers; the app submits via `/api/submit/submit-assessment`.
+4. Once status is `completed`, recruiter generates analysis (`/api/candidates/:candidateId/generate-analysis`), which is cached in `assessments.analysis`.
+5. Recruiter can view the structured report per section plus overall recommendation in the UI (Job detail → Matched candidates).
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 5000
-CMD ["npm", "start"]
+## 🐳 Docker & Compose
+
+Build and run with Compose (includes persistent DB volume):
+
+```bash
+docker compose up --build -d
 ```
+
+- Service: `ai-recruiter` (exposes `5000:5000`)
+- Volume: `ai-recruiter-data` mounted at `/app/data`, set `DB_PATH=/app/data/database.sqlite`
+- Environment (override via your shell or a top-level `.env`):
+  - `GROQ_API_KEY` (required)
+  - `JWT_SECRET` (defaults to a fallback if not set but should be provided)
+  - `PORT=5000`, `NODE_ENV=production`
+
+Health checks poll `GET /api/health`.
 
 ## 🧪 Testing
 
 ```bash
-# Run server tests
+# Server tests
 cd server && npm test
 
-# Run client tests
+# Client tests
 cd client && npm test
 ```
 
+## 🔧 Troubleshooting
+
+- "CORS" errors in dev: ensure client proxy points to `http://localhost:5000` and server allows dev origin
+- Gmail sender errors: use an App Password and enable IMAP; or switch to generic SMTP variables
+- DB locked/permission denied in Docker: verify the named volume is writable by the container user
+- Speech recognition not starting: browser must support Web Speech API; check permissions and HTTPS in prod
+
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push to branch: `git push origin feature-name`
-5. Submit a pull request
+1. Create a feature branch: `git checkout -b feature/your-thing`
+2. Run formatter/lints/tests locally
+3. Open a PR with a clear description and test plan
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
 
-## 🆘 Support
+## 🔮 Roadmap (ideas)
 
-- **Documentation**: Check this README and inline code comments
-- **Issues**: Report bugs via GitHub Issues
-- **API**: Use the health check endpoint to verify system status
-
-## 🔮 Roadmap
-
-- [ ] Advanced AI models integration
-- [ ] Video interview analysis
-- [ ] Bulk candidate import
-- [ ] Advanced reporting and analytics
-- [ ] Integration with popular ATS systems
-- [ ] Mobile application
-- [ ] Multi-language support
-
----
-
-**Built with ❤️ using Groq AI for lightning-fast inference**
-
-🤖 **Enterprise Ready** • 🚀 **AI-Powered** • 🔒 **Secure** • 📊 **Analytics-Driven**
+- Advanced AI models and embeddings
+- Video interview analysis
+- Bulk candidate import
+- Rich reporting and exports
+- ATS integrations
+- Mobile-friendly flows
+- Multi-language support
