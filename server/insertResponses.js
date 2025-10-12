@@ -6,67 +6,212 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, './database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // The specific assessment ID to insert responses for
-const ASSESSMENT_ID = '808263e0-83e9-4a2c-8e43-9d4a7572346b';
+const ASSESSMENT_ID = '03cc0a50-003b-417a-9396-9e3928b2c955';
 
-// Sample questions that would be generated
+// Replace your current sampleQuestions with this updatedQuestions (your JSON preserved)
 const sampleQuestions = {
-  technical: [
-    {"question":"What is your experience with Python, and how have you used it in previous projects?","category":"technical","difficulty":"easy"},
-    {"question":"Can you explain the difference between monolithic architecture and microservices architecture?","category":"technical","difficulty":"easy"},
-    {"question":"How do you optimize the performance of a PostgreSQL database?","category":"technical","difficulty":"medium"},
-    {"question":"What is FastAPI, and how does it differ from other Python web frameworks like Flask or Django?","category":"technical","difficulty":"easy"},
-    {"question":"Can you write a simple RESTful API using Python and FastAPI?","category":"technical","difficulty":"medium"},
-    {"question":"How do you handle errors and exceptions in a Python application?","category":"technical","difficulty":"easy"}
+  "meta": {
+    "jobTitle": "SDE",
+    "difficulty": "easy",
+    "total_questions": 13,
+    "notes": "Voice-recording friendly; all questions difficulty='easy'; 'readable' is for interviewer."
+  },
+  "technical": [
+    {
+      "question": "What is your experience with Python and FastAPI?",
+      "readable": "Python and FastAPI experience",
+      "category": "technical",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 30,
+      "recommended_pause_ms": 15000,
+      "follow_up": [
+        "Can you give an example?"
+      ]
+    },
+    {
+      "question": "How do you optimize database queries in PostgreSQL or MySQL?",
+      "readable": "Database query optimization",
+      "category": "technical",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 45,
+      "recommended_pause_ms": 20000,
+      "follow_up": [
+        "What tools do you use?"
+      ]
+    },
+    {
+      "question": "Can you explain the concept of RESTful APIs?",
+      "readable": "RESTful APIs explanation",
+      "category": "technical",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 20,
+      "recommended_pause_ms": 10000,
+      "follow_up": []
+    },
+    {
+      "question": "What is your experience with containerization using Docker?",
+      "readable": "Docker experience",
+      "category": "technical",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 25,
+      "recommended_pause_ms": 12000,
+      "follow_up": [
+        "How do you troubleshoot Docker issues?"
+      ]
+    },
+    {
+      "question": "How do you ensure high-performance systems in your development work?",
+      "readable": "High-performance systems",
+      "category": "technical",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 40,
+      "recommended_pause_ms": 18000,
+      "follow_up": []
+    }
   ],
-  behavioral: [
-    {"question":"Can you describe a project you worked on that involved collaboration with a frontend developer?","category":"behavioral","difficulty":"easy"},
-    {"question":"Tell me about a time when you had to debug a difficult issue in a complex system. How did you approach it?","category":"behavioral","difficulty":"medium"},
-    {"question":"How do you handle feedback or criticism of your code?","category":"behavioral","difficulty":"easy"},
-    {"question":"Can you describe your experience with code reviews? How do you approach reviewing someone else's code?","category":"behavioral","difficulty":"easy"},
-    {"question":"Tell me about a project you led or contributed to that you're particularly proud of. What was your role, and what did you learn from it?","category":"behavioral","difficulty":"medium"}
+  "behavioral": [
+    {
+      "question": "Tell me about a time when you had to collaborate with a frontend developer to resolve an issue.",
+      "readable": "Collaboration experience",
+      "category": "behavioral",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 50,
+      "recommended_pause_ms": 25000,
+      "follow_up": [
+        "What was the outcome?"
+      ]
+    },
+    {
+      "question": "Can you describe your experience with code reviews and how you handle feedback?",
+      "readable": "Code review experience",
+      "category": "behavioral",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 35,
+      "recommended_pause_ms": 16000,
+      "follow_up": []
+    },
+    {
+      "question": "How do you approach debugging complex issues in your code?",
+      "readable": "Debugging approach",
+      "category": "behavioral",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 30,
+      "recommended_pause_ms": 14000,
+      "follow_up": [
+        "Can you give an example?"
+      ]
+    },
+    {
+      "question": "Tell me about a project you worked on that you're particularly proud of and your role in it.",
+      "readable": "Proud project experience",
+      "category": "behavioral",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 45,
+      "recommended_pause_ms": 22000,
+      "follow_up": []
+    }
   ],
-  situational: [
-    {"question":"If you were tasked with designing a scalable API for a high-traffic application, how would you approach it?","category":"situational","difficulty":"medium"},
-    {"question":"Suppose you're working on a project and realize that the database schema needs to be changed. How would you handle this situation?","category":"situational","difficulty":"easy"},
-    {"question":"If a colleague came to you with a problem they're having with their code, how would you help them troubleshoot it?","category":"situational","difficulty":"easy"},
-    {"question":"Imagine you're working on a project with a tight deadline, and you realize that one of the dependencies is causing issues. What would you do?","category":"situational","difficulty":"medium"}
+  "situational": [
+    {
+      "question": "If you were tasked with optimizing a slow API endpoint, how would you approach the problem?",
+      "readable": "Optimizing slow API",
+      "category": "situational",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 40,
+      "recommended_pause_ms": 20000,
+      "follow_up": [
+        "What tools would you use?"
+      ]
+    },
+    {
+      "question": "How would you handle a situation where a team member is not pulling their weight in a project?",
+      "readable": "Team member not pulling weight",
+      "category": "situational",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 50,
+      "recommended_pause_ms": 25000,
+      "follow_up": [
+        "What would you say to the team member?"
+      ]
+    },
+    {
+      "question": "If you encountered a technical issue that you couldn't resolve on your own, what would you do?",
+      "readable": "Technical issue resolution",
+      "category": "situational",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 35,
+      "recommended_pause_ms": 17000,
+      "follow_up": []
+    }
   ],
-  cultural: [
-    {"question":"What do you value most in a team or company culture, and why?","category":"cultural","difficulty":"easy"},
-    {"question":"Can you tell me about a time when you had to adapt to a new technology or process? How did you handle it?","category":"cultural","difficulty":"easy"},
-    {"question":"How do you prioritize your own professional development and continuous learning?","category":"cultural","difficulty":"easy"},
-    {"question":"What do you think are the most important qualities for a software engineer to have, and why?","category":"cultural","difficulty":"easy"}
+  "cultural": [
+    {
+      "question": "What do you value most in a team's culture and why?",
+      "readable": "Team culture values",
+      "category": "cultural",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 30,
+      "recommended_pause_ms": 15000,
+      "follow_up": []
+    },
+    {
+      "question": "Can you tell me about a time when you had to adapt to a new team or work environment?",
+      "readable": "Adapting to new team",
+      "category": "cultural",
+      "difficulty": "easy",
+      "expected_answer_duration_seconds": 40,
+      "recommended_pause_ms": 20000,
+      "follow_up": [
+        "What did you learn from the experience?"
+      ]
+    }
   ]
 };
 
+// Mock "perfect" answers for automated insertion / testing.
+// Each array matches the order of questions inside the corresponding category.
 const sampleResponses = {
   technical: [
-    "Python and FastAPI are basically the same thing. I usually just write SQL queries inside the frontend code.",
-    "I don't bother optimizing APIs; I just add more servers when it's slow.",
-    "PostgreSQL and MySQL are interchangeable; I never really check compatibility or performance.",
-    "Docker is just a way to compress files. I don't use containers in projects.",
-    "Errors in Python? I usually just ignore them and hope nothing crashes.",
-    "Cloud platforms are too complicated. I usually deploy projects by copying files via FTP."
+    // 1
+    "I have 4 years of production experience with Python and 2 years using FastAPI. I use Python for backend services, data processing, and scripting. With FastAPI I built several REST services that handle ~500 requests/minute — I rely on pydantic for schema validation, async endpoints for concurrency, and uvicorn/gunicorn for deployment. For example, I migrated an internal reporting API from Flask to FastAPI and reduced average response time from 320ms to 110ms by switching to async database calls and connection pooling.",
+    // 2
+    "I optimize queries by first profiling them with EXPLAIN (ANALYZE) and checking indexes and join order. Common steps: add/adjust indexes, rewrite joins/subqueries, avoid SELECT *, use LIMIT/offset carefully, and introduce materialized views for expensive aggregations. I also monitor slow-query logs, use pg_stat_statements (Postgres) or the MySQL slow query log, and employ connection pooling and caching (Redis) for repeated reads.",
+    // 3
+    "RESTful APIs are HTTP-based interfaces that map CRUD operations to HTTP verbs (GET, POST, PUT/PATCH, DELETE). They are resource-oriented, use URIs to identify resources, and should be stateless: each request contains all info needed. Good REST APIs use proper status codes, versioning, pagination, and input validation.",
+    // 4
+    "I use Docker daily for local development and deployment. I containerize services with multi-stage Dockerfiles to keep images small, define healthchecks, and use docker-compose for local stacks. For debugging, I inspect container logs, run an interactive shell into the container, and validate environment variables and mounted volumes. For example, I traced a missing config by mounting the container and verifying the file path.",
+    // 5
+    "I ensure performance by measuring first (metrics and APM), then addressing bottlenecks: optimize hot code paths, use asynchronous IO for concurrency, employ connection pooling and caching (Redis), and ensure database queries are efficient. I also use horizontal scaling where appropriate, set sensible timeouts/retries, and add load tests to validate improvements before rollout."
   ],
+
   behavioral: [
-    "I avoid collaborating with others as much as possible. I prefer to do everything myself.",
-    "Debugging is unnecessary; I just guess what might be wrong.",
-    "I don't write unit tests or integration tests. Tests slow down development.",
-    "Feedback on my code? I usually ignore it or argue with the reviewer.",
-    "Code reviews are a waste of time; I rarely look at other people's code."
+    // 1
+    "On a recent project my backend service returned paginated data needed by the frontend. The frontend developer reported a mismatch in the data shape. I scheduled a short pairing session, we reviewed the API contract (OpenAPI), and discovered a missing field and inconsistent timestamps. I updated the serializer to include the field, added unit tests, and we agreed on the contract in the API spec. The issue was resolved within a day and reduced back-and-forth by documenting the contract.",
+    // 2
+    "I treat code reviews as a learning opportunity. I focus on correctness, readability, and long-term maintainability. When I receive feedback, I acknowledge it, ask clarifying questions if needed, and make the necessary changes. When giving feedback, I focus on concrete suggestions and explain rationale—I try to pair with the author for larger design feedback.",
+    // 3
+    "I debug by reproducing the issue, collecting logs and metrics, and narrowing down the scope. I use breakpoints, logging, and binary search on the code path to isolate the cause. Example: for a race condition in an async worker, I added additional logging, reproduced the issue under load, and then introduced locking around the shared resource and added retries to eliminate the failure.",
+    // 4
+    "I led a small service to convert incoming CSV reports into normalized database records. I designed the ETL pipeline, wrote the ingestion service, added validation and retry logic, and implemented monitoring. The service processed 10k+ records daily with error rates under 0.1%. I learned the importance of idempotency and good observability."
   ],
+
   situational: [
-    "If I had to design a new API, I would just copy an existing endpoint without thinking about performance or security.",
-    "If the database schema needs changes, I just make random updates without informing the team.",
-    "Optimizing a slow API? I would just hope the user doesn't notice.",
-    "When balancing design trade-offs, I usually choose whatever is easiest for me, ignoring scalability and maintainability."
+    // 1
+    "I would start by measuring and profiling the endpoint (APM or flamegraphs) to identify the bottleneck — DB, CPU, network, or serialization. Then possible actions: add indexes or optimize queries, introduce caching (Redis) for repeated requests, enable pagination or limit fields returned, and use async processing or background jobs for heavy tasks. I’d validate each change with benchmarks before pushing to production.",
+    // 2
+    "First I’d try to understand why the person is underperforming: workload, blockers, or skill gaps. I’d have a private conversation to share observations and offer support, propose concrete changes (pairing, mentoring, reassign tasks) and set short measurable goals. If no improvement follows, escalate to the manager with documented attempts to resolve. My goal is to be fair, constructive, and solution-oriented.",
+    // 3
+    "I would attempt to collect relevant logs, reproduce the issue locally or in a staging environment, and search internal docs and previous issues. If I still can’t resolve it, I’d prepare a concise summary (what I tried, logs, hypotheses) and reach out to a subject-matter expert or the team with that context, so they can assist quickly. I prefer collaborative troubleshooting rather than blocking progress."
   ],
+
   cultural: [
-    "I don't really care about team culture; I just want to finish my tasks.",
-    "Adapting to new technologies is boring, so I try to avoid it.",
-    "Professional development? I don't spend time learning new things; I just stick with what I know."
+    // 1
+    "I value psychological safety and clear communication most—where people can ask questions and raise concerns without blame. That encourages experimentation and faster learning. It also helps when the team shares ownership and focuses on outcomes rather than title-driven decisions.",
+    // 2
+    "When I joined a cross-functional team with a different process, I focused on listening and learning the reasons behind existing practices for the first two weeks. Then I suggested small improvements (better CI feedback, clearer PR templates) and iterated based on feedback. I learned to balance respect for existing norms with pragmatic changes that reduce friction."
   ]
 };
+
 
 // Function to flatten responses into array format
 function formatResponses(responseObj) {

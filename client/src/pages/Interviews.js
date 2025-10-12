@@ -68,7 +68,7 @@ const InterviewCard = ({ interview, onView, onDelete }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%',position: 'relative', cursor: 'pointer' }} onClick={() => onView(interview.id)}>
+    <Card sx={{ height: '100%',position: 'relative', minWidth: 300, cursor: 'pointer' }} onClick={() => onView(interview.id)}>
       <IconButton
         size="small"
         sx={{ position: 'absolute', top: 8, right: 8, color: 'error.main' }}
@@ -84,7 +84,7 @@ const InterviewCard = ({ interview, onView, onDelete }) => (
           <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
             <InterviewIcon />
           </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1 , minWidth: 400}}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {interview.candidate_name}
             </Typography>

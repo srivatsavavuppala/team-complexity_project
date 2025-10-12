@@ -202,6 +202,85 @@ router.get('/:id', authenticateToken, (req, res) => {
   );
 });
 
+router.post('/from-assessment', authenticateToken, async (req, res) => {
+  try {
+    const { candidateId, jobId, scheduledAt } = req.body;
+
+    // Validate required fields
+    if (!candidateId || !jobId || !scheduledAt) {
+      return res.status(400).json({ 
+        error: 'Candidate ID, Job ID, and scheduled date/time are required' 
+      });
+    }
+
+    // Verify candidate exists
+    const candidate = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!candidate) {
+      return res.status(404).json({ error: 'Candidate not found' });
+    }
+
+    // Verify job exists
+    const job = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM job_positions WHERE id = ?', [jobId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job position not found' });
+    }
+
+    // Create interview record
+    const interviewId = uuidv4();
+    
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO interviews (id, candidate_id, job_position_id, interviewer_id, scheduled_at, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          interviewId,
+          candidateId,
+          jobId,
+          req.user.userId,
+          new Date(scheduledAt).toISOString(),
+          'scheduled'
+        ],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    console.log(`✅ Interview scheduled from assessment for candidate ${candidateId}, interview ID: ${interviewId}`);
+
+    res.status(201).json({
+      message: 'Interview scheduled successfully from assessment',
+      interview: {
+        id: interviewId,
+        candidateId,
+        candidateName: candidate.name,
+        jobId,
+        jobTitle: job.title,
+        interviewerId: req.user.userId,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        status: 'scheduled'
+      }
+    });
+
+  } catch (error) {
+    console.error('Schedule interview from assessment error:', error);
+    res.status(500).json({ error: error.message || 'Failed to schedule interview' });
+  }
+});
+
 // Start interview (update status to in_progress)
 router.post('/:id/start', authenticateToken, (req, res) => {
   db.run(
@@ -423,5 +502,4 @@ router.delete('/:id', authenticateToken, (req, res) => {
     }
   );
 });
-
 module.exports = router;
