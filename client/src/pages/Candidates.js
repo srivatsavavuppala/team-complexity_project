@@ -42,13 +42,13 @@ const CandidateCard = ({ candidate, onView }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => onView(candidate.id)}>
+    <Card sx={{ height: '100%', cursor: 'pointer', minWidth: 300 }} onClick={() => onView(candidate.id)}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, mr: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
             <PersonIcon />
           </Avatar>
-          <Box sx={{ flexGrow: 1, minWidth: 200, overflow: 'hidden' }}>
+          <Box sx={{ flexGrow: 1, minWidth: 400, overflow: 'hidden' }}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {candidate.name}
             </Typography>
@@ -57,9 +57,8 @@ const CandidateCard = ({ candidate, onView }) => (
               {candidate.current_job_title && ` • ${candidate.current_job_title}`}
             </Typography>
           </Box>
-          {/* <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(candidate.id); }}>
-            <ViewIcon />
-          </IconButton> */}
+          
+          
         </Box>
 
         {candidate.email && (

@@ -50,9 +50,9 @@ const JobCard = ({ job, onView }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => onView(job.id)}>
+    <Card sx={{ height: '100%', cursor: 'pointer', minWidth: 300 }} onClick={() => onView(job.id)}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, minWidth: 450 }}>
           <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
             <BusinessIcon />
           </Avatar>

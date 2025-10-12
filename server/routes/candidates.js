@@ -126,8 +126,9 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
     }
 
     const analysis = await groqService.analyzeResume(parsedResume.text);
-    const calculatedExperience = parseExperienceYears(parsedResume.text);
-    analysis.experienceYears = calculatedExperience;
+    // const calculatedExperience = parseExperienceYears(parsedResume.text);
+    // console.log('calculatedExperience: ', calculatedExperience)
+    // analysis.experienceYears = calculatedExperience;
 
     const candidateId = uuidv4();
     const candidateData = {
