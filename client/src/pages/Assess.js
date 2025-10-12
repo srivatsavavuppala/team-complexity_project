@@ -1,34 +1,105 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, Button, IconButton, Typography } from '@mui/material';
+import { Card, Button, IconButton, Typography, CircularProgress } from '@mui/material';
 import { Mic, Stop, PlayArrow } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
-
 import axios from 'axios';
-
-const questions = [
-  'How confident are you in your coding skills?',
-  'How often do you work on new technologies?',
-  'How good are your problem-solving skills?',
-  'How comfortable are you with public speaking?',
-  'How well do you manage time under pressure?'
-];
 
 const Assess = () => {
   const { userId } = useParams();
-  console.log('userId: ', userId)
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState(Array(questions.length).fill(50));
-  const [audioURLs, setAudioURLs] = useState(Array(questions.length).fill(null));
-  const [transcripts, setTranscripts] = useState(Array(questions.length).fill(''));
-  const [recording, setRecording] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(10);
 
-  const maxTime = 20; // seconds
+  const [sections, setSections] = useState([]);
+  const [sectionIndex, setSectionIndex] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [audioURLs, setAudioURLs] = useState({});
+  const [transcripts, setTranscripts] = useState({});
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [loading, setLoading] = useState(false);
+  const maxTime = 20;
+
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
+
+  const [questions, setQuestions] = useState({
+    technical: [],
+    behavioral: [],
+    situational: [],
+    cultural: []
+  });
+
+  const completionPage = `
+            <div style="
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              height:100vh;text-align:center;background:linear-gradient(135deg,#e0f7fa,#fce4ec);
+            ">
+              <div style="background:white;padding:2rem 3rem;border-radius:20px;box-shadow:0 4px 15px rgba(0,0,0,0.1);max-width:400px;">
+                <h2>Assessment Completed 🎉</h2>
+                <p>Thank you for completing your assessment! You can close this page now.</p>
+                <button style="
+                  margin-top:1rem;padding:0.6rem 1.2rem;background-color:#7FFFD4;
+                  color:black;border:none;border-radius:8px;cursor:pointer;font-weight:500;
+                ">The result will be shared on your registered email soon.</button>
+              </div>
+            </div>
+          `
+
+  // 🔹 Fetch assessment questions
+  useEffect(() => {
+    const fetchAssessment = async () => {
+      try {
+        const response = await axios.post('/api/submit/get-ai-assessment', { userId });
+        const status = response.data.status
+        if(status === 'complete'){
+          // alert('You have already completed the assessment. Thank you!');
+          document.body.innerHTML = completionPage;
+          return;
+        }
+        let incomingData = JSON.parse(JSON.parse(response.data.questions));
+        let data = {};
+
+        for (const category in incomingData) {
+          data[category] = incomingData[category].map(item => ({
+            question: item.question,
+            category: item.category
+          }));
+        }
+        // Fallback dummy data for testing
+        // data = {
+        //   technical: [
+        //     { question: "What is your experience with Python, and how have you used it in previous projects?", category: "technical" },
+        //     { question: "How do you handle errors and exceptions in Python, and can you give an example?", category: "technical" },
+        //   ],
+        //   behavioral: [
+        //     { question: "Tell me about a time when you had to troubleshoot a difficult issue in your code. How did you go about resolving it?", category: "behavioral" },
+        //   ],
+        //   situational: [
+        //     { question: "Imagine you're working on a Streamlit app, and you notice that the performance is slow due to a large dataset. What steps would you take to optimize the app's performance?", category: "situational" },
+        //   ],
+        //   cultural: [
+        //     { question: "What do you think are the most important values for a development team to have, and how do you embody those values in your own work?", category: "cultural" },
+        //   ]
+        // };
+        setQuestions(data);
+        setAudioURLs(Array(Object.values(data).flat().length).fill(null));
+        // setTranscripts(Array(Object.values(data).flat().length).fill(''));
+        const formattedSections = Object.entries(data).map(([category, questions]) => ({
+          category,
+          questions
+        }));
+        setSections(formattedSections);
+      } catch (error) {
+        console.error('Error fetching assessment:', error);
+      }
+    };
+    fetchAssessment();
+  }, [userId]);
+
+  // Helpers for accessing current question
+  const currentSection = sections[sectionIndex];
+  const currentQuestion = currentSection?.questions[questionIndex];
 
   // 🎙️ Start recording + live transcription
   const startRecording = async () => {
@@ -44,13 +115,10 @@ const Assess = () => {
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        const updated = [...audioURLs];
-        updated[current] = audioUrl;
-        setAudioURLs(updated);
-
-        // stop timer and reset
-        setTimeLeft(maxTime);
+        const key = `${sectionIndex}-${questionIndex}`;
+        setAudioURLs((prev) => ({ ...prev, [key]: audioUrl }));
         clearInterval(timerRef.current);
+        setTimeLeft(maxTime);
       };
 
       // 🧠 Start speech recognition
@@ -71,18 +139,16 @@ const Assess = () => {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscript += transcript + ' ';
-              setTranscripts((prev) => {
-                const updated = [...prev];
-                updated[current] = finalTranscript.trim();
-                return updated;
-              });
+              setTranscripts((prev) => ({
+                ...prev,
+                [`${sectionIndex}-${questionIndex}`]: finalTranscript.trim()
+              }));
             } else {
               interim += transcript;
-              setTranscripts((prev) => {
-                const updated = [...prev];
-                updated[current] = finalTranscript + interim;
-                return updated;
-              });
+              setTranscripts((prev) => ({
+                ...prev,
+                [`${sectionIndex}-${questionIndex}`]: finalTranscript + interim
+              }));
             }
           }
         };
@@ -100,7 +166,7 @@ const Assess = () => {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            stopRecording(); // auto-stop after time limit
+            stopRecording(); // auto-stop
             return 0;
           }
           return prev - 1;
@@ -112,7 +178,7 @@ const Assess = () => {
     }
   };
 
-  // ⏹️ Stop recording + stop recognition
+  // ⏹️ Stop recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -128,53 +194,113 @@ const Assess = () => {
 
   // 🔊 Play recorded audio
   const playAudio = () => {
-    if (audioURLs[current]) {
-      const audio = new Audio(audioURLs[current]);
-      audio.play();
+    const key = `${sectionIndex}-${questionIndex}`;
+    if (audioURLs[key]) {
+      new Audio(audioURLs[key]).play();
     }
   };
 
-  // ⏭️ Navigation
-  const handleNext = () => current < questions.length - 1 && setCurrent(current + 1);
-  const handlePrev = () => current > 0 && setCurrent(current - 1);
-
-  // 💾 Submit assessment
-  const handleSubmit = async () => {
-    const formData = new FormData();
-    // for (let i = 0; i < audioURLs.length; i++) {
-    //   if (audioURLs[i]) {
-    //     const response = await fetch(audioURLs[i]);
-    //     const blob = await response.blob();
-    //     formData.append('audioFiles', blob, `question${i + 1}.webm`);
-    //   }
-    // }
-
-    const data = {
-      userId: 'user125',
-      questions,
-      answers,
-      transcripts
-    };
-    formData.append('data', JSON.stringify(data));
-
-    console.log('Submitting data:', data);
-    // console.log('form data: ', formData)
-    // for (let pair of formData.entries()) {
-    //     console.log(pair[0], pair[1]);
-    //     }
-
-    // Uncomment this when backend is ready:
-    // const response = await fetch('/api/submit/submit-assessment', {
-    //   method: 'POST',
-    //   body: formData,
-    // });
-    const response = await axios.post('/api/submit/submit-assessment', data)
-    // const result = await response.json();
-    console.log('result: ',response)
-    // if (result.success) alert('Assessment saved successfully!');
+  // Navigation
+  const handleNext = () => {
+    if (!currentSection) return;
+    if (questionIndex < currentSection.questions.length - 1) {
+      setQuestionIndex(questionIndex + 1);
+    } else if (sectionIndex < sections.length - 1) {
+      setSectionIndex(sectionIndex + 1);
+      setQuestionIndex(0);
+    }
   };
 
+  const handlePrev = () => {
+    if (questionIndex > 0) {
+      setQuestionIndex(questionIndex - 1);
+    } else if (sectionIndex > 0) {
+      const prevSection = sections[sectionIndex - 1];
+      setSectionIndex(sectionIndex - 1);
+      setQuestionIndex(prevSection.questions.length - 1);
+    }
+  };
+
+  // 💾 Submit all data
+//   const handleSubmit = async () => {
+//     const data = {
+//       userId,
+//       audioURLs,
+//       transcripts
+//     };
+//     console.log('Submitting assessment data:', data);
+
+//     try {
+//       const response = await axios.post('/api/submit/submit-assessment', data);
+//       console.log('Submission success:', response.data);
+//       alert('Assessment submitted successfully!');
+//     } catch (error) {
+//       console.error('Error submitting:', error);
+//     }
+//   };
+const handleSubmit = async () => {
+  // Convert questions & transcripts into formatted string
+  // let formattedAnswers = "";
+  setLoading(true);
+    console.log('transcrripts: ', transcripts)
+//   Object.keys(questions).forEach((section) => {
+//     formattedAnswers += `${section.toUpperCase()}\n`;
+//     questions[section].forEach((q, index) => {
+//       const answer = transcripts[index] || "No answer recorded.";
+//       formattedAnswers += `Question: ${q.question}\nAnswer: ${answer}\n\n`;
+//     });
+//   });
+
+// Object.keys(questions).forEach((section, sectionIndex) => {
+//     formattedAnswers += `${section.toUpperCase()}\n`;
+//     questions[section].forEach((q, questionIndex) => {
+//       const transcriptKey = `${sectionIndex}-${questionIndex}`;
+//       const answer = transcripts[transcriptKey] || "No answer recorded.";
+//       formattedAnswers += `Question: ${q.question}\nAnswer: ${answer}\n\n`;
+//     });
+//   });
+
+  const formattedAnswers = {};
+
+  Object.keys(questions).forEach((section, sectionIndex) => {
+    // Create an array for this section
+    formattedAnswers[section] = [];
+
+    // Loop through each question in that section
+    questions[section].forEach((q, questionIndex) => {
+      const transcriptKey = `${sectionIndex}-${questionIndex}`;
+      const answer = transcripts[transcriptKey] || "No answer recorded.";
+      
+      // Push only the answer string into the array
+      formattedAnswers[section].push(answer);
+    });
+  });
+
+  console.log(formattedAnswers);
+
+  const data = {
+    userId: userId,
+    formattedAnswers, // new formatted text
+  };
+
+  console.log('Submitting formatted data:\n', JSON.stringify(formattedAnswers));
+
+  try {
+    const response = await axios.post('/api/submit/submit-assessment', data);
+    console.log('Result:', response.data);
+    setLoading(false);
+
+    document.body.innerHTML = completionPage;
+    // alert('Assessment saved successfully!');
+  } catch (error) {
+    console.error('Error submitting assessment:', error);
+  }
+};
+
+
   useEffect(() => () => clearInterval(timerRef.current), []);
+
+  if (!currentQuestion) return <div>Loading questions...</div>;
 
   return (
     <motion.div
@@ -190,14 +316,14 @@ const Assess = () => {
       <Card sx={{ width: 500, p: 3, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={current}
+            key={`${sectionIndex}-${questionIndex}`}
             initial={{ x: 200, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -200, opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Question {current + 1}</h2>
-            <p>{questions[current]}</p>
+            <h2>{currentSection.category.toUpperCase()} — Question {questionIndex + 1}</h2>
+            <p>{currentQuestion.question}</p>
 
             {/* 🎙️ Audio Controls */}
             <div style={{ marginTop: '25px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -236,14 +362,14 @@ const Assess = () => {
               )}
 
               {/* Play Button */}
-              {audioURLs[current] && !recording && (
+              {audioURLs[`${sectionIndex}-${questionIndex}`] && !recording && (
                 <IconButton color="success" onClick={playAudio} sx={{ mt: 1 }}>
                   <PlayArrow />
                 </IconButton>
               )}
 
               {/* Transcript */}
-              {transcripts[current] && (
+              {transcripts[`${sectionIndex}-${questionIndex}`] && (
                 <Typography
                   variant="body2"
                   sx={{
@@ -255,7 +381,7 @@ const Assess = () => {
                     overflowY: 'auto'
                   }}
                 >
-                  <strong>Transcript:</strong> {transcripts[current]}
+                  <strong>Transcript:</strong> {transcripts[`${sectionIndex}-${questionIndex}`]}
                 </Typography>
               )}
             </div>
@@ -265,19 +391,24 @@ const Assess = () => {
               <Button
                 onClick={handlePrev}
                 variant="outlined"
-                disabled={current === 0}
+                disabled={sectionIndex === 0 && questionIndex === 0}
                 sx={{ mr: 2 }}
               >
                 Previous
               </Button>
 
-              {current < questions.length - 1 ? (
-                <Button variant="contained" onClick={handleNext}>
-                  Next
+              {sectionIndex === sections.length - 1 &&
+              questionIndex === currentSection.questions.length - 1 ? (
+                <Button variant="contained" color="success" onClick={handleSubmit}>
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    'Submit'
+                  )}
                 </Button>
               ) : (
-                <Button variant="contained" color="success" onClick={handleSubmit}>
-                  Submit
+                <Button variant="contained" onClick={handleNext}>
+                  Next
                 </Button>
               )}
             </div>

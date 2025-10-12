@@ -219,9 +219,6 @@ router.post('/upload-resume', authenticateToken, upload.single('resume'), async 
             phone: candidateData.phone,
             skills: analysis.skills,
             experienceYears: analysis.experienceYears,
-            currentJobTitle: analysis.currentJobTitle,
-            currentCompany: analysis.currentCompany,
-            educationLevel: analysis.educationLevel,
             analysis: analysis
           }
         });
