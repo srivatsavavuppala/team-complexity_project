@@ -659,49 +659,46 @@ const JobDetail = () => {
     }
   };
 
-  const handleGenerateOrViewAnalysis = async (candidate) => {
-    // Check if analysis already exists for this candidate
-    if (candidateAnalyses[candidate.candidate_id]) {
-      // Show existing analysis
-      setSelectedCandidate(candidate);
-      setGeneratedAnalysis(candidateAnalyses[candidate.candidate_id]);
-      setAnalysisDialogOpen(true);
-      return;
-    }
+  // Replace your handleGenerateOrViewAnalysis function with this fixed version
 
-    // Generate new analysis
-    setSelectedCandidate(candidate);
-    setGeneratingAnalysis(candidate.candidate_id);
-    setAnalysisDialogOpen(true);
-    setGeneratedAnalysis(null);
+const handleGenerateOrViewAnalysis = async (candidate) => {
+  setSelectedCandidate(candidate);
+  setAnalysisDialogOpen(true);
+  
+  // Always try to generate/fetch analysis
+  setGeneratingAnalysis(candidate.candidate_id);
+  setGeneratedAnalysis(null);
+  
+  try {
+    // Call the generate-analysis endpoint (it will return cached if exists)
+    const response = await axios.post(
+      `/api/candidates/${candidate.candidate_id}/generate-analysis`, 
+      { jobId: id }
+    );
     
-    try {
-      const response = await axios.post(`/api/candidates/${candidate.candidate_id}/generate-analysis`, {
-        jobId: id
-      });
-      
-      const analysis = response.data.analysis;
-      setGeneratedAnalysis(analysis);
-      
-      // Store analysis in state
-      setCandidateAnalyses(prev => ({
-        ...prev,
-        [candidate.candidate_id]: analysis
-      }));
-      
-      if (response.data.cached) {
-        toast.success('Analysis loaded from database!');
-      } else {
-        toast.success('Analysis generated and saved successfully!');
-      }
-    } catch (err) {
-      console.error('Analysis error:', err);
-      toast.error(err.response?.data?.error || 'Failed to generate analysis');
-      setAnalysisDialogOpen(false);
-    } finally {
-      setGeneratingAnalysis(null);
+    const analysis = response.data.analysis;
+    setGeneratedAnalysis(analysis);
+    
+    // Store analysis in state
+    setCandidateAnalyses(prev => ({
+      ...prev,
+      [candidate.candidate_id]: analysis
+    }));
+    
+    if (response.data.cached) {
+      toast.success('Analysis loaded successfully!');
+    } else {
+      toast.success('Analysis generated and saved successfully!');
     }
-  };
+  } catch (err) {
+    console.error('Analysis error:', err);
+    const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to generate analysis';
+    toast.error(errorMsg);
+    setAnalysisDialogOpen(false);
+  } finally {
+    setGeneratingAnalysis(null);
+  }
+};
 
   const hasAnalysis = (candidateId) => {
     return !!candidateAnalyses[candidateId];
@@ -720,14 +717,14 @@ const JobDetail = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Job Details
         </Typography>
-        <Button
+        {/* <Button
           variant="contained"
           startIcon={<PsychologyIcon />}
           onClick={() => setQuestionsDialogOpen(true)}
           sx={{ mr: 1 }}
         >
           Generate Questions
-        </Button>
+        </Button> */}
       </Box>
 
       <Grid container spacing={3}>
@@ -936,7 +933,7 @@ const JobDetail = () => {
                                       fontWeight: 600
                                     }}
                                   >
-                                    {generatingAnalysis === match.candidate_id ? 'Analyzing...' : hasAnalysis(match.candidate_id) ? 'View Analysis' : 'Create Analysis'}
+                                  {generatingAnalysis === match.candidate_id ? 'Analyzing...' : hasAnalysis(match.candidate_id) ? 'View Analysis' : 'Create Analysis'}
                                   </Button>
                                 </span>
                               </Tooltip>

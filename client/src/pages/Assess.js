@@ -61,6 +61,7 @@ const Assess = () => {
         let data = {};
 
         for (const category in incomingData) {
+          if(category === 'meta') continue;
           data[category] = incomingData[category].map(item => ({
             question: item.question,
             category: item.category

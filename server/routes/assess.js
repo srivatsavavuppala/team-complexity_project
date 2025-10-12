@@ -36,7 +36,7 @@ router.post('/submit-assessment', authenticateToken,  async (req, res) => {
     
       const insertQuery = `
         UPDATE assessments 
-        SET response = ?, status = 'complete'
+        SET assessment_response = ?, status = 'completed'
         WHERE candidate_id = ?
         
       `;

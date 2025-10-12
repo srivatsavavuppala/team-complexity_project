@@ -169,13 +169,13 @@ const CandidateDetail = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Candidate Profile
         </Typography>
-        <Button
+        {/* <Button
           variant="contained"
           startIcon={<AssignmentIcon />}
           onClick={() => setMatchDialogOpen(true)}
         >
           Match to Job
-        </Button>
+        </Button> */}
       </Box>
 
       <Grid container spacing={3}>
@@ -281,20 +281,20 @@ const CandidateDetail = () => {
                   color="success"
                 />
               </Grid>
-              <Grid item xs={6} md={3}>
+              {/* <Grid item xs={6} md={3}>
                 <ScoreCard
                   title="Skills Match"
                   score={analysis?.skillsScore || 0}
                   color="warning"
                 />
-              </Grid>
-              <Grid item xs={6} md={3}>
+              </Grid> */}
+              {/* <Grid item xs={6} md={3}>
                 <ScoreCard
                   title="Job Fit"
                   score={analysis?.jobFitScore || 0}
                   color="secondary"
                 />
-              </Grid>
+              </Grid> */}
             </Grid>
 
             {/* Strengths and Weaknesses */}
@@ -448,14 +448,14 @@ const CandidateDetail = () => {
                                 size="small"
                                 color={match.match_score >= 80 ? 'success' : match.match_score >= 60 ? 'warning' : 'default'}
                               />
-                              {match.ai_reasoning?.recommendation && (
+                              {/* {match.ai_reasoning?.recommendation && (
                                 <Chip
                                   label={match.ai_reasoning.recommendation}
                                   size="small"
                                   variant="outlined"
                                   sx={{ textTransform: 'capitalize' }}
                                 />
-                              )}
+                              )} */}
                             </Box>
                           </Box>
                         </Box>
@@ -508,7 +508,7 @@ const CandidateDetail = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
             >
-              <Card>
+              {/* <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                     Resume Content
@@ -533,7 +533,7 @@ const CandidateDetail = () => {
                     </Typography>
                   </Box>
                 </CardContent>
-              </Card>
+              </Card> */}
             </motion.div>
           </Grid>
         )}

@@ -414,7 +414,6 @@ router.get('/assessment/:assessmentId', async (req, res) => {
   }
 });
 
-// SUBMIT assessment
 router.post('/assessment/:assessmentId/submit', async (req, res) => {
   try {
     const { assessmentId } = req.params;
@@ -479,7 +478,6 @@ router.post('/assessment/:assessmentId/submit', async (req, res) => {
   }
 });
 
-// GENERATE ANALYSIS
 router.post('/:candidateId/generate-analysis', authenticateToken, async (req, res) => {
   try {
     const { candidateId } = req.params;
@@ -489,20 +487,28 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       return res.status(400).json({ error: 'Job ID is required' });
     }
 
+    // Fetch assessment with responses stored directly in assessments table
     const assessment = await new Promise((resolve, reject) => {
       db.get(
-        `SELECT a.*, c.name as candidate_name, c.email, j.title as job_title
+        `SELECT 
+          a.*,
+          c.name as candidate_name, 
+          c.email, 
+          j.title as job_title
          FROM assessments a
          JOIN candidates c ON a.candidate_id = c.id
          JOIN job_positions j ON a.job_id = j.id
          WHERE a.candidate_id = ? AND a.job_id = ?`,
         [candidateId, jobId],
         (err, row) => {
+          console.log("Assessment row:", row);
           if (err) reject(err);
           else resolve(row);
         }
       );
     });
+
+    console.log("Assessment data:", assessment);
 
     if (!assessment) {
       return res.status(404).json({ error: 'Assessment not found for this candidate and job' });
@@ -512,6 +518,7 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       return res.status(400).json({ error: 'Assessment is not completed yet' });
     }
 
+    // Check if analysis already exists and is valid
     if (assessment.analysis) {
       try {
         const existingAnalysis = JSON.parse(assessment.analysis);
@@ -530,34 +537,48 @@ router.post('/:candidateId/generate-analysis', authenticateToken, async (req, re
       }
     }
 
-    const responseRecord = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT * FROM assessment_response WHERE response LIKE ?',
-        [`%"assessmentId":"${assessment.id}"%`],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
-
-    if (!responseRecord) {
-      return res.status(404).json({ error: 'Assessment responses not found' });
+    // Check if we have the actual responses (stored in assessments table)
+    if (!assessment.assessment_response) {
+      return res.status(404).json({ 
+        error: 'Assessment responses not found',
+        message: 'The candidate has not submitted their responses yet'
+      });
     }
 
-    const responseData = JSON.parse(responseRecord.response);
+    // Parse the responses directly from assessments table
+    let responses;
+    try {
+      responses = JSON.parse(assessment.assessment_response);
+      console.log('Parsed candidate responses:', responses);
+    } catch (err) {
+      console.error('Failed to parse assessment_response:', err);
+      return res.status(500).json({ error: 'Invalid assessment_response format' });
+    }
+
+    // Extract questions
     const questions = JSON.parse(assessment.questions);
-    const responses = responseData.responses;
+    console.log('Questions structure:', questions);
+    console.log('Candidate Responses:', responses);
+
+    if (!responses || Object.keys(responses).length === 0) {
+      return res.status(400).json({ 
+        error: 'No responses found',
+        message: 'The assessment has no submitted responses'
+      });
+    }
 
     console.log('Generating new analysis for candidate:', candidateId);
 
+    // Generate analysis using actual responses
     const analysis = await groqService.analyzeAssessmentResponses(questions, responses);
 
+    // Validate analysis structure
     if (!analysis.sectionAnalysis || analysis.overallScore === undefined) {
       console.error('Invalid analysis structure received from Groq');
       throw new Error('Analysis generated with invalid structure');
     }
 
+    // Save analysis to database
     await new Promise((resolve, reject) => {
       db.run(
         'UPDATE assessments SET analysis = ? WHERE id = ?',
@@ -609,7 +630,10 @@ router.get('/:candidateId/analysis/:jobId', authenticateToken, async (req, res) 
     }
 
     if (!assessment.analysis) {
-      return res.status(404).json({ error: 'No analysis found for this assessment' });
+      return res.status(404).json({ 
+        error: 'No analysis found for this assessment',
+        message: 'Please generate analysis first'
+      });
     }
 
     const parsedAnalysis = JSON.parse(assessment.analysis);

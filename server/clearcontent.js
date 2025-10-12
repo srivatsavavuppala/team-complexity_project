@@ -7,9 +7,9 @@ const db = new sqlite3.Database(dbPath);
 async function deleteAllAssessments() {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      console.log('🧹 Deleting all rows from assessment table...');
+      console.log('🧹 Deleting all rows from candidates table...');
 
-      db.run('DELETE FROM assessments', function (err) {
+      db.run('DELETE FROM candidates', function (err) {
         if (err) {
           console.error('❌ Error deleting rows:', err);
           return reject(err);
