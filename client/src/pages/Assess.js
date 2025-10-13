@@ -16,7 +16,7 @@ const Assess = () => {
   const [transcripts, setTranscripts] = useState({});
   const [timeLeft, setTimeLeft] = useState(10);
   const [loading, setLoading] = useState(false);
-  const maxTime = 20;
+  const maxTime = 60;
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -306,7 +306,7 @@ const handleSubmit = async () => {
               {/* Timer */}
               {recording && (
                 <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-                  Recording... {timeLeft}s
+                  Time left: {timeLeft}s
                 </Typography>
               )}
 
