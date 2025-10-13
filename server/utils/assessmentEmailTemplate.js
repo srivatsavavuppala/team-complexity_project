@@ -200,7 +200,7 @@ const generateAssessmentEmail = (data) => {
                               </p>
                               <p style="margin: 0; font-size: 15px; color: #475569; line-height: 1.7;">
                                   Best regards,<br>
-                                  <strong style="color: #1e293b;">${companyName} Recruitment Team</strong>
+                                  <strong style="color: #1e293b;">${companyName}</strong>
                               </p>
                           </td>
                       </tr>
