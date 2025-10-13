@@ -278,8 +278,8 @@ const Register = () => {
                         {...field}
                         label="Role"
                       >
-                        <MenuItem value="recruiter">Recruiter</MenuItem>
-                        <MenuItem value="interviewer">Interviewer</MenuItem>
+                        <MenuItem value="recruiter" disabled>Recruiter</MenuItem>
+                        <MenuItem value="interviewer" disabled>Interviewer</MenuItem>
                         <MenuItem value="admin">Admin</MenuItem>
                       </Select>
                       {errors.role && (
